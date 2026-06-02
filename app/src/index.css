@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    -webkit-tap-highlight-color: transparent;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-sand text-ink font-sans antialiased;
+    overscroll-behavior-y: none;
+  }
+  /* Títulos con la tipografía corporativa Darker Grotesque */
+  .font-display {
+    letter-spacing: -0.01em;
+  }
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Foco visible accesible para navegación por teclado (skill §1 focus-states).
+     El tap-highlight sigue transparente; el anillo solo aparece con :focus-visible. */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px theme('colors.sand.50'), 0 0 0 4px theme('colors.bronze.DEFAULT');
+    border-radius: 6px;
+  }
+}
+
+/* Respeto de prefers-reduced-motion (skill §1 reduced-motion) — regla crítica.
+   Reduce drásticamente cualquier animación/transición sin romper el layout. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  /* respeto del safe-area en móviles con notch */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+  .h-dvh {
+    height: 100dvh;
+  }
+  /* el logotipo positivo (oscuro) renderizado en blanco sobre fondo oscuro */
+  .logo-white {
+    filter: brightness(0) invert(1);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  /* Cifras de ancho fijo para timers, horas y contadores (skill §6 number-tabular) */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+  /* Luz cálida de marca: el logo proyectado sobre la pared con foco bronce.
+     Gradiente radial sutil para dar profundidad a las superficies oscuras. */
+  .brand-glow {
+    background-image:
+      radial-gradient(120% 140% at 85% -10%, rgba(185, 138, 94, 0.28) 0%, rgba(185, 138, 94, 0) 55%),
+      radial-gradient(90% 120% at 0% 110%, rgba(185, 138, 94, 0.10) 0%, rgba(185, 138, 94, 0) 60%);
+  }
+}

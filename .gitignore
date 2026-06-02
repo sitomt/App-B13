@@ -1,0 +1,16 @@
+# Dependencias y build
+app/node_modules
+app/dist
+
+# Variables de entorno (credenciales)
+app/.env
+app/*.local
+
+# macOS
+.DS_Store
+
+# Skills instaladas (binarios locales, no parte del código fuente)
+.agents/
+
+# Planes y memoria de sesión de Claude Code
+.claude/
