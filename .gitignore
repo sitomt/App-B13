@@ -1,10 +1,10 @@
 # Dependencias y build
-app/node_modules
-app/dist
+node_modules
+dist
 
 # Variables de entorno (credenciales)
-app/.env
-app/*.local
+.env
+*.local
 
 # macOS
 .DS_Store
@@ -14,3 +14,6 @@ app/*.local
 
 # Planes y memoria de sesión de Claude Code
 .claude/
+
+# Vercel (generado por CLI/plugin al hacer deploy)
+.vercel/
