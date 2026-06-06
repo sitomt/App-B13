@@ -1,171 +1,304 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
-import { listEmployees, listShifts, rangeTimeEntries, upsertShift, deleteShift } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  listEmployees, listShifts, rangeTimeEntries,
+  createShift, updateShift, deleteShift,
+  getScheduleWeek, publishWeek, unpublishWeek,
+} from '../lib/api'
 import { useData } from '../lib/useData'
 import { useSession } from '../state/session'
 import { useToast } from '../components/Toast'
-import { Card, SectionTitle, Spinner } from '../components/ui'
+import { haptic } from '../lib/haptics'
+import { Card, SectionTitle, Pill, SkeletonList, EmptyState } from '../components/ui'
 import Sheet from '../components/Sheet'
-import { Chevron, Calendar, Clock, Trash, User } from '../components/icons'
-import { monthBounds, dowLabel, parseDate, isTodayStr, todayMadrid } from '../lib/date'
+import { Chevron, Calendar, Clock, Trash, User, Plus, Check, Lock } from '../components/icons'
+import { weekBounds, monthBounds, dowLabel, parseDate, isTodayStr, todayMadrid } from '../lib/date'
 import { workedMinutesByEmployee, fmtMinutes } from '../lib/hours'
 
-const ROLE_LABEL = { coach: 'Coach', cleaning: 'Limpieza', maintenance: 'Mant.', admin: 'Admin' }
+const ROLE_ORDER = ['coach', 'cleaning', 'maintenance']
+const ROLE_GROUP = { coach: 'Coaches', cleaning: 'Limpieza', maintenance: 'Mantenimiento' }
+const PUESTOS = ['Recepción', 'Sala', 'Clases', 'Otro']
 
-function Avatar({ emp, size = 36 }) {
-  const initials = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
+const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+// "7" / "7:30" (sin ceros a la izquierda, sin :00)
+const hLabel = (t) => { const [h, m] = t.split(':').map(Number); return m === 0 ? `${h}` : `${h}:${String(m).padStart(2, '0')}` }
+const range = (s) => `${hLabel(s.start_time)}–${hLabel(s.end_time)}`
+
+function Avatar({ emp, size = 28 }) {
+  const ini = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
   return (
     <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white"
       style={{ background: emp.color, width: size, height: size, fontSize: size * 0.38 }}>
-      {initials}
+      {ini}
     </span>
   )
 }
 
-const shiftMinutes = (s) => {
-  const [h1, m1] = s.start_time.split(':').map(Number)
-  const [h2, m2] = s.end_time.split(':').map(Number)
-  return (h2 * 60 + m2) - (h1 * 60 + m1)
-}
-const hhmm = (t) => (t ? t.slice(0, 5) : '')
-
-export default function ScheduleScreen({ editable = false }) {
-  const { employee } = useSession()
-  const toast = useToast()
-  const [offset, setOffset] = useState(0)
-  const month = useMemo(() => monthBounds(offset), [offset])
-  const [selected, setSelected] = useState(() => (monthBounds(0).days.includes(todayMadrid()) ? todayMadrid() : monthBounds(0).days[0]))
-
-  const emp = useData(listEmployees, [])
-  const shifts = useData(() => listShifts(month.startStr, month.endStr), [month.startStr])
-  const entries = useData(() => rangeTimeEntries(month.startStr, month.endStr), [month.startStr])
-
-  const [editing, setEditing] = useState(null) // { emp, date, shift }
-  const stripRef = useRef(null)
-
-  // Al cambiar de mes, situar el día seleccionado dentro del mes.
-  useEffect(() => {
-    setSelected(month.days.includes(todayMadrid()) ? todayMadrid() : month.days[0])
-  }, [month.startStr]) // eslint-disable-line
-
-  const staff = (emp.data || []).filter((e) => e.role !== 'admin')
-  const shiftsByDate = useMemo(() => {
-    const m = new Map()
-    for (const s of shifts.data || []) {
-      if (!m.has(s.work_date)) m.set(s.work_date, new Map())
-      m.get(s.work_date).set(s.employee_id, s)
-    }
-    return m
-  }, [shifts.data])
-
-  const worked = useMemo(() => workedMinutesByEmployee(entries.data || []), [entries.data])
-
-  const daySel = shiftsByDate.get(selected) || new Map()
-  const dayRows = staff.map((e) => ({ emp: e, shift: daySel.get(e.id) || null })).sort((a, b) => (b.shift ? 1 : 0) - (a.shift ? 1 : 0))
-
-  const loading = emp.loading || shifts.loading
-
+// ------- Cuadrante semanal (rota): empleados x 7 días -------
+function WeekGrid({ staffByRole, days, shiftsByEmpDay, selectedDay, onSelectDay, employee, editable, onCellTap }) {
   return (
-    <div className="space-y-5 pb-24">
-      {/* Navegación de mes */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => setOffset((o) => o - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-ink/5 active:scale-90">
-          <Chevron size={20} className="rotate-180 text-ink/60" />
-        </button>
-        <div className="flex items-center gap-2 text-ink">
-          <Calendar size={18} className="text-bronze-dark" />
-          <span className="font-display text-xl font-extrabold">{month.label}</span>
-        </div>
-        <button onClick={() => setOffset((o) => o + 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-ink/5 active:scale-90">
-          <Chevron size={20} className="text-ink/60" />
-        </button>
-      </div>
-
-      {/* Tira de días */}
-      <div ref={stripRef} className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {month.days.map((d) => {
-          const has = shiftsByDate.get(d)?.size > 0
-          const mine = shiftsByDate.get(d)?.has(employee.id)
-          const sel = d === selected
+    <Card className="overflow-hidden p-0">
+      {/* Cabecera de días */}
+      <div className="grid grid-cols-[68px_repeat(7,minmax(0,1fr))] border-b border-ink/[0.06] bg-sand-50">
+        <div className="px-2 py-2" />
+        {days.map((d) => {
           const today = isTodayStr(d)
+          const sel = d === selectedDay
           return (
-            <button key={d} onClick={() => setSelected(d)}
-              className={`flex h-16 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border transition active:scale-95 ${
-                sel ? 'border-ink bg-ink text-white' : today ? 'border-bronze bg-white text-ink' : 'border-transparent bg-white text-ink'
-              }`}>
-              <span className={`text-[10px] font-bold ${sel ? 'text-white/60' : 'text-ink/40'}`}>{dowLabel(d)}</span>
-              <span className="font-display text-lg font-extrabold leading-none">{parseDate(d).getDate()}</span>
-              <span className={`mt-1 h-1.5 w-1.5 rounded-full ${mine ? (sel ? 'bg-bronze' : 'bg-bronze') : has ? (sel ? 'bg-white/40' : 'bg-ink/15') : 'bg-transparent'}`} />
+            <button key={d} onClick={() => onSelectDay(d)}
+              className={`flex flex-col items-center py-2 ${sel ? 'bg-ink text-white' : today ? 'text-bronze-dark' : 'text-ink/50'}`}>
+              <span className="text-[10px] font-bold">{dowLabel(d)}</span>
+              <span className="font-display text-base font-extrabold leading-none tabular">{parseDate(d).getDate()}</span>
             </button>
           )
         })}
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-10"><Spinner className="h-7 w-7" /></div>
-      ) : (
-        <>
-          {/* Turnos del día seleccionado */}
-          <div>
-            <SectionTitle icon={Clock}>Turnos · {parseDate(selected).getDate()} {month.label.split(' ')[0].toLowerCase()}</SectionTitle>
-            <Card className="divide-y divide-ink/[0.06]">
-              {dayRows.map(({ emp: e, shift }) => {
-                const isMe = e.id === employee.id
-                return (
-                  <button
-                    key={e.id}
-                    onClick={() => editable && setEditing({ emp: e, date: selected, shift })}
-                    disabled={!editable}
-                    className={`flex w-full items-center gap-3 p-3 text-left ${editable ? 'active:bg-ink/[0.03]' : ''} ${isMe ? 'bg-bronze/[0.06]' : ''}`}
-                  >
-                    <Avatar emp={e} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-ink">{e.name}{isMe && <span className="ml-1 text-xs font-bold text-bronze-dark">· tú</span>}</p>
-                      <p className="text-xs text-ink/40">{ROLE_LABEL[e.role]}</p>
-                    </div>
-                    {shift ? (
-                      <div className="text-right">
-                        <p className="font-display text-lg font-bold text-ink">{hhmm(shift.start_time)}–{hhmm(shift.end_time)}</p>
-                        <p className="text-xs text-ink/40">{fmtMinutes(shiftMinutes(shift))}</p>
-                      </div>
-                    ) : (
-                      <span className="text-sm font-semibold text-ink/30">{editable ? '+ asignar' : 'libra'}</span>
-                    )}
-                  </button>
-                )
-              })}
-            </Card>
+      {ROLE_ORDER.map((role) => {
+        const list = staffByRole[role] || []
+        if (!list.length) return null
+        return (
+          <div key={role}>
+            <p className="bg-sand-50/70 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-ink/40">{ROLE_GROUP[role]}</p>
+            {list.map((e) => {
+              const isMe = e.id === employee.id
+              return (
+                <div key={e.id} className={`grid grid-cols-[68px_repeat(7,minmax(0,1fr))] border-b border-ink/[0.04] ${isMe ? 'bg-bronze/[0.05]' : ''}`}>
+                  <div className="flex items-center gap-1.5 px-2 py-2">
+                    <Avatar emp={e} size={22} />
+                    <span className="truncate text-[11px] font-semibold text-ink">{e.name.split(' ')[0]}</span>
+                  </div>
+                  {days.map((d) => {
+                    const shifts = shiftsByEmpDay.get(e.id)?.get(d) || []
+                    return (
+                      <button
+                        key={d}
+                        disabled={!editable}
+                        onClick={() => editable && onCellTap(e, d)}
+                        className={`flex min-h-[40px] flex-col items-center justify-center gap-0.5 border-l border-ink/[0.04] px-0.5 py-1 ${editable ? 'active:bg-ink/[0.04]' : ''}`}
+                      >
+                        {shifts.length === 0 ? (
+                          <span className="text-ink/15">{editable ? '+' : '·'}</span>
+                        ) : (
+                          shifts.map((s) => (
+                            <span key={s.id} className="w-full truncate rounded text-center text-[9px] font-bold leading-tight tabular"
+                              style={{ background: e.color + '26', color: e.color, padding: '1px 2px' }}>
+                              {range(s)}
+                            </span>
+                          ))
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })}
           </div>
+        )
+      })}
+    </Card>
+  )
+}
 
-          {/* Horas trabajadas del mes */}
-          <div>
-            <SectionTitle icon={User}>Horas trabajadas · {month.label}</SectionTitle>
-            <Card className="divide-y divide-ink/[0.06]">
-              {[...staff]
-                .map((e) => ({ emp: e, min: worked.get(e.id) || 0 }))
-                .sort((a, b) => b.min - a.min)
-                .map(({ emp: e, min }) => {
-                  const isMe = e.id === employee.id
+// ------- Timeline del día: cobertura por horas (rango dinámico) -------
+function DayTimeline({ day, dayShifts, empById }) {
+  if (dayShifts.length === 0) {
+    return <EmptyState icon={Lock} title="Cerrado" subtitle="Sin turnos asignados este día." />
+  }
+  const starts = dayShifts.map((s) => toMin(s.start_time))
+  const ends = dayShifts.map((s) => toMin(s.end_time))
+  const rangeStart = Math.floor(Math.min(...starts) / 60) * 60
+  const rangeEnd = Math.ceil(Math.max(...ends) / 60) * 60
+  const total = Math.max(60, rangeEnd - rangeStart)
+  const pct = (min) => ((min - rangeStart) / total) * 100
+
+  // Ticks de hora (cada 1 o 2h según amplitud)
+  const step = total / 60 > 9 ? 120 : 60
+  const ticks = []
+  for (let m = rangeStart; m <= rangeEnd; m += step) ticks.push(m)
+
+  // Agrupar por empleado
+  const byEmp = new Map()
+  for (const s of dayShifts) {
+    if (!byEmp.has(s.employee_id)) byEmp.set(s.employee_id, [])
+    byEmp.get(s.employee_id).push(s)
+  }
+
+  return (
+    <Card className="p-3">
+      {/* Regla de horas */}
+      <div className="relative mb-1 ml-[68px] h-4">
+        {ticks.map((m) => (
+          <span key={m} className="absolute -translate-x-1/2 text-[9px] font-bold text-ink/35 tabular" style={{ left: `${pct(m)}%` }}>
+            {Math.floor(m / 60)}h
+          </span>
+        ))}
+      </div>
+      <div className="space-y-1.5">
+        {[...byEmp.entries()].map(([empId, shifts]) => {
+          const e = empById.get(empId)
+          if (!e) return null
+          return (
+            <div key={empId} className="flex items-center gap-2">
+              <span className="w-[60px] shrink-0 truncate text-[11px] font-semibold text-ink">{e.name.split(' ')[0]}</span>
+              <div className="relative h-7 flex-1 rounded-lg bg-ink/[0.04]">
+                {shifts.map((s) => {
+                  const left = pct(toMin(s.start_time))
+                  const width = pct(toMin(s.end_time)) - left
                   return (
-                    <div key={e.id} className={`flex items-center gap-3 p-3 ${isMe ? 'bg-bronze/[0.06]' : ''}`}>
-                      <Avatar emp={e} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-ink">{e.name}{isMe && <span className="ml-1 text-xs font-bold text-bronze-dark">· tú</span>}</p>
-                      </div>
-                      <p className="font-display text-xl font-extrabold text-ink">{fmtMinutes(min)}</p>
+                    <div key={s.id} className="absolute top-0 flex h-7 items-center overflow-hidden rounded-lg px-1.5 text-[9px] font-bold text-white"
+                      style={{ left: `${left}%`, width: `${width}%`, background: e.color }}
+                      title={`${range(s)}${s.puesto ? ' · ' + s.puesto : ''}`}>
+                      <span className="truncate tabular">{range(s)}{s.puesto ? ` · ${s.puesto}` : ''}</span>
                     </div>
                   )
                 })}
-            </Card>
-            <p className="mt-2 px-1 text-xs text-ink/40">Acumulado desde el día 1 del mes, según los fichajes (descontando pausas y comidas).</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
+export default function ScheduleScreen({ editable = false }) {
+  const { employee } = useSession()
+  const toast = useToast()
+  const [offset, setOffset] = useState(0)
+  const week = useMemo(() => weekBounds(offset), [offset])
+  const month = useMemo(() => monthBounds(0), [])
+  const [selectedDay, setSelectedDay] = useState(todayMadrid())
+  const [editing, setEditing] = useState(null) // { emp, date }
+
+  const emp = useData(listEmployees, [])
+  const shifts = useData(() => listShifts(week.startStr, week.endStr), [week.startStr])
+  const weekEntries = useData(() => rangeTimeEntries(week.startStr, week.endStr), [week.startStr])
+  const monthEntries = useData(() => rangeTimeEntries(month.startStr, month.endStr), [month.startStr])
+  const schedWeek = useData(() => getScheduleWeek(week.startStr), [week.startStr], { interval: 0 })
+
+  useEffect(() => {
+    setSelectedDay(week.days.includes(todayMadrid()) ? todayMadrid() : week.days[0])
+  }, [week.startStr]) // eslint-disable-line
+
+  const staff = (emp.data || []).filter((e) => e.role !== 'admin')
+  const empById = useMemo(() => new Map((emp.data || []).map((e) => [e.id, e])), [emp.data])
+  const staffByRole = useMemo(() => {
+    const m = {}
+    for (const e of staff) (m[e.role] ||= []).push(e)
+    return m
+  }, [emp.data])
+
+  // empId -> date -> shifts[]
+  const shiftsByEmpDay = useMemo(() => {
+    const m = new Map()
+    for (const s of shifts.data || []) {
+      if (!m.has(s.employee_id)) m.set(s.employee_id, new Map())
+      const days = m.get(s.employee_id)
+      if (!days.has(s.work_date)) days.set(s.work_date, [])
+      days.get(s.work_date).push(s)
+    }
+    return m
+  }, [shifts.data])
+
+  const dayShifts = (shifts.data || []).filter((s) => s.work_date === selectedDay).sort((a, b) => toMin(a.start_time) - toMin(b.start_time))
+  const weekWorked = useMemo(() => workedMinutesByEmployee(weekEntries.data || []), [weekEntries.data])
+  const monthWorked = useMemo(() => workedMinutesByEmployee(monthEntries.data || []), [monthEntries.data])
+
+  const published = schedWeek.data?.status === 'published'
+  const showSchedule = editable || published
+  const loading = emp.loading || shifts.loading
+
+  async function togglePublish() {
+    try {
+      if (published) { await unpublishWeek(week.startStr); toast('Semana en borrador'); haptic('warning') }
+      else { await publishWeek(week.startStr, employee.id); toast('Semana publicada ✓'); haptic('success') }
+      await schedWeek.reload(true)
+    } catch { toast('No se pudo actualizar', 'error') }
+  }
+
+  // Horas: cada empleado ve solo las suyas; el admin ve todo el equipo.
+  const hoursStaff = editable ? [...staff] : staff.filter((e) => e.id === employee.id)
+
+  return (
+    <div className="space-y-5 pb-24">
+      {/* Navegación de semana */}
+      <div className="flex items-center justify-between">
+        <button onClick={() => setOffset((o) => o - 1)} aria-label="Semana anterior" className="flex h-10 w-10 items-center justify-center rounded-full bg-ink/5 active:scale-90">
+          <Chevron size={20} className="rotate-180 text-ink/60" />
+        </button>
+        <div className="flex flex-col items-center text-ink">
+          <span className="flex items-center gap-1.5 font-display text-lg font-extrabold"><Calendar size={16} className="text-bronze-dark" />{week.label}</span>
+          {editable ? (
+            <button onClick={togglePublish} className="mt-0.5 active:scale-95">
+              <Pill color={published ? 'sage' : 'ochre'}>{published ? 'Publicado · pulsa para retirar' : 'Borrador · pulsar para publicar'}</Pill>
+            </button>
+          ) : (
+            published && <Pill color="sage" className="mt-0.5">Publicado</Pill>
+          )}
+        </div>
+        <button onClick={() => setOffset((o) => o + 1)} aria-label="Semana siguiente" className="flex h-10 w-10 items-center justify-center rounded-full bg-ink/5 active:scale-90">
+          <Chevron size={20} className="text-ink/60" />
+        </button>
+      </div>
+
+      {loading ? (
+        <SkeletonList rows={6} />
+      ) : !showSchedule ? (
+        <EmptyState icon={Lock} title="Horario no publicado" subtitle="El horario de esta semana aún no está disponible. Te avisaremos cuando se publique." />
+      ) : (
+        <>
+          <WeekGrid
+            staffByRole={staffByRole}
+            days={week.days}
+            shiftsByEmpDay={shiftsByEmpDay}
+            selectedDay={selectedDay}
+            onSelectDay={setSelectedDay}
+            employee={employee}
+            editable={editable}
+            onCellTap={(e, d) => setEditing({ emp: e, date: d })}
+          />
+          {editable && <p className="-mt-2 px-1 text-xs text-ink/40">Toca una casilla para asignar o editar turnos. Las horas sin nadie = gimnasio cerrado.</p>}
+
+          <div>
+            <SectionTitle icon={Clock}>{parseDate(selectedDay).getDate()} {parseDate(selectedDay).toLocaleDateString('es-ES', { month: 'long' })} · cobertura por horas</SectionTitle>
+            <DayTimeline day={selectedDay} dayShifts={dayShifts} empById={empById} />
           </div>
         </>
       )}
 
+      {/* Horas trabajadas (privadas por empleado) */}
+      <div>
+        <SectionTitle icon={User}>{editable ? 'Horas trabajadas del equipo' : 'Mis horas trabajadas'}</SectionTitle>
+        <Card className="divide-y divide-ink/[0.06]">
+          {hoursStaff
+            .map((e) => ({ e, w: weekWorked.get(e.id) || 0, m: monthWorked.get(e.id) || 0 }))
+            .sort((a, b) => b.w - a.w)
+            .map(({ e, w, m }, i) => {
+              const isMe = e.id === employee.id
+              return (
+                <div key={e.id} className={`flex animate-rise-in items-center gap-3 p-3 ${isMe ? 'bg-bronze/[0.05]' : ''}`} style={{ animationDelay: `${i * 35}ms` }}>
+                  <Avatar emp={e} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-ink">{e.name}{isMe && <span className="ml-1 text-xs font-bold text-bronze-dark">· tú</span>}</p>
+                    <p className="text-xs text-ink/40">Mes: <span className="tabular">{fmtMinutes(m)}</span></p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-display text-xl font-extrabold text-ink tabular">{fmtMinutes(w)}</p>
+                    <p className="text-[10px] text-ink/40">esta semana</p>
+                  </div>
+                </div>
+              )
+            })}
+        </Card>
+        <p className="mt-2 px-1 text-xs text-ink/40">Calculado de los fichajes (descontando pausas y comidas).</p>
+      </div>
+
       {editable && (
         <ShiftEditor
           state={editing}
+          shifts={(shiftsByEmpDay.get(editing?.emp?.id)?.get(editing?.date) || [])}
           onClose={() => setEditing(null)}
-          onSaved={async () => { await shifts.reload(true) }}
+          onChanged={() => shifts.reload(true)}
           createdBy={employee.id}
           toast={toast}
         />
@@ -174,61 +307,109 @@ export default function ScheduleScreen({ editable = false }) {
   )
 }
 
-function ShiftEditor({ state, onClose, onSaved, createdBy, toast }) {
-  const [start, setStart] = useState('09:00')
-  const [end, setEnd] = useState('17:00')
+// ------- Editor de turnos del día (varias franjas + puesto) -------
+function PuestoChips({ value, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {PUESTOS.map((p) => (
+        <button key={p} onClick={() => onChange(value === p ? null : p)}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition active:scale-95 ${value === p ? 'bg-bronze text-white' : 'bg-ink/5 text-ink/60'}`}>
+          {p}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function FranjaRow({ shift, onChanged, toast }) {
+  const [start, setStart] = useState(shift.start_time.slice(0, 5))
+  const [end, setEnd] = useState(shift.end_time.slice(0, 5))
+  const [puesto, setPuesto] = useState(shift.puesto || null)
   const [busy, setBusy] = useState(false)
+  const dirty = start !== shift.start_time.slice(0, 5) || end !== shift.end_time.slice(0, 5) || (puesto || null) !== (shift.puesto || null)
 
-  useEffect(() => {
-    if (state?.shift) { setStart(hhmm(state.shift.start_time)); setEnd(hhmm(state.shift.end_time)) }
-    else { setStart('09:00'); setEnd('17:00') }
-  }, [state])
-
-  if (!state) return null
-  const input = 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-bronze'
+  const inp = 'rounded-xl border border-ink/10 bg-white px-2 py-2 text-base font-semibold tabular outline-none focus:border-bronze'
 
   async function save() {
-    if (end <= start) { toast('La salida debe ser posterior a la entrada', 'error'); return }
+    if (end <= start) { toast('La salida debe ser posterior', 'error'); return }
     setBusy(true)
-    try {
-      await upsertShift({ employee_id: state.emp.id, work_date: state.date, start_time: start, end_time: end, created_by: createdBy })
-      toast('Turno guardado ✓'); await onSaved(); onClose()
-    } catch { toast('No se pudo guardar', 'error') } finally { setBusy(false) }
+    try { await updateShift(shift.id, { start_time: start, end_time: end, puesto }); haptic('success'); toast('Turno guardado ✓'); await onChanged() }
+    catch { toast('No se pudo guardar', 'error') } finally { setBusy(false) }
   }
-  async function clear() {
+  async function remove() {
     setBusy(true)
-    try { await deleteShift(state.emp.id, state.date); toast('Turno eliminado'); await onSaved(); onClose() }
+    try { await deleteShift(shift.id); haptic('warning'); toast('Franja eliminada'); await onChanged() }
     catch { toast('No se pudo eliminar', 'error') } finally { setBusy(false) }
   }
 
   return (
-    <Sheet open={!!state} onClose={onClose} title={state.shift ? 'Editar turno' : 'Asignar turno'}>
-      <div className="mb-4 flex items-center gap-3">
-        <Avatar emp={state.emp} />
-        <div>
-          <p className="font-display text-xl font-bold">{state.emp.name}</p>
-          <p className="text-sm text-ink/45">{parseDate(state.date).getDate()} · {dowLabel(state.date)}</p>
-        </div>
+    <div className="rounded-2xl border border-ink/10 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={`${inp} flex-1`} />
+        <span className="text-ink/30">→</span>
+        <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={`${inp} flex-1`} />
+        <button onClick={remove} disabled={busy} aria-label="Quitar franja" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink/5 text-terracotta active:scale-90">
+          <Trash size={16} />
+        </button>
       </div>
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Entrada</label>
-          <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={input} />
-        </div>
-        <span className="mt-6 text-ink/30">→</span>
-        <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Salida</label>
-          <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={input} />
-        </div>
-      </div>
-      <button onClick={save} disabled={busy} className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
-        Guardar turno
-      </button>
-      {state.shift && (
-        <button onClick={clear} disabled={busy} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-terracotta active:scale-95">
-          <Trash size={16} /> Quitar turno
+      <PuestoChips value={puesto} onChange={setPuesto} />
+      {dirty && (
+        <button onClick={save} disabled={busy} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-sage py-2 text-sm font-bold text-white active:scale-95">
+          <Check size={16} /> Guardar cambios
         </button>
       )}
+    </div>
+  )
+}
+
+function ShiftEditor({ state, shifts, onClose, onChanged, createdBy, toast }) {
+  const [start, setStart] = useState('09:00')
+  const [end, setEnd] = useState('14:00')
+  const [puesto, setPuesto] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { setStart('09:00'); setEnd('14:00'); setPuesto(null) }, [state])
+  if (!state) return null
+
+  async function add() {
+    if (end <= start) { toast('La salida debe ser posterior', 'error'); return }
+    setBusy(true)
+    try {
+      await createShift({ employee_id: state.emp.id, work_date: state.date, start_time: start, end_time: end, puesto, created_by: createdBy })
+      haptic('success'); toast('Franja añadida ✓'); await onChanged()
+      setStart(end); setEnd('22:00'); setPuesto(null)
+    } catch { toast('No se pudo añadir', 'error') } finally { setBusy(false) }
+  }
+
+  const inp = 'rounded-xl border border-ink/10 bg-white px-2 py-2 text-base font-semibold tabular outline-none focus:border-bronze'
+
+  return (
+    <Sheet open={!!state} onClose={onClose} title="Turnos del día">
+      <div className="mb-4 flex items-center gap-3">
+        <Avatar emp={state.emp} size={36} />
+        <div>
+          <p className="font-display text-xl font-bold">{state.emp.name}</p>
+          <p className="text-sm text-ink/45 capitalize">{parseDate(state.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        </div>
+      </div>
+
+      {shifts.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink/40">Franjas asignadas</p>
+          {shifts.map((s) => <FranjaRow key={s.id} shift={s} onChanged={onChanged} toast={toast} />)}
+        </div>
+      )}
+
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-ink/40">Añadir franja</p>
+      <div className="mb-2 flex items-center gap-2">
+        <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={`${inp} flex-1`} />
+        <span className="text-ink/30">→</span>
+        <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={`${inp} flex-1`} />
+      </div>
+      <div className="mb-4"><PuestoChips value={puesto} onChange={setPuesto} /></div>
+      <button onClick={add} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+        <Plus size={20} /> Añadir franja
+      </button>
     </Sheet>
   )
 }

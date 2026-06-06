@@ -1,13 +1,20 @@
-import { useState } from 'react'
-import { listIncidencias, updateIncidencia, deleteIncidencia, listMaintenance, updateMaintenance, deleteMaintenance } from '../../lib/api'
+import { useEffect, useState } from 'react'
+import {
+  listIncidencias, updateIncidencia, deleteIncidencia, reorderIncidencias,
+  listMaintenance, updateMaintenance, deleteMaintenance, reorderMaintenance,
+} from '../../lib/api'
 import { useData } from '../../lib/useData'
 import { useSession } from '../../state/session'
 import { useToast } from '../../components/Toast'
+import { haptic } from '../../lib/haptics'
 import { Card, SectionTitle, Pill, Spinner, EmptyState } from '../../components/ui'
 import IncidenciaTypesEditor from '../../components/IncidenciaTypesEditor'
 import ReportIncident from '../../components/ReportIncident'
-import { Alert, Wrench, Check, Clock, User, Settings, Trash, Plus } from '../../components/icons'
+import { Alert, Wrench, Check, Clock, User, Settings, Trash, Plus, GripVertical } from '../../components/icons'
 import { shortDate, dateTime, daysBetween, relativeTime } from '../../lib/date'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const STATUS = {
   pending: { label: 'Pendiente', pill: 'terracotta' },
@@ -39,7 +46,7 @@ function Step({ color, label, who, when, last }) {
   )
 }
 
-function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint }) {
+function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint, dragHandle }) {
   const [open, setOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const done = inc.status === 'done'
@@ -47,9 +54,19 @@ function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint }) {
   const aging = !done && days >= 2
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="relative overflow-hidden">
+      {dragHandle && (
+        <button
+          {...dragHandle.attributes}
+          {...dragHandle.listeners}
+          aria-label="Arrastrar para reordenar"
+          className="absolute right-1.5 top-1.5 z-10 flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-lg text-ink/25 active:cursor-grabbing active:bg-ink/5"
+        >
+          <GripVertical size={18} />
+        </button>
+      )}
       <button onClick={() => setOpen((v) => !v)} className="w-full p-4 text-left">
-        <div className="mb-1 flex flex-wrap items-center gap-2">
+        <div className="mb-1 flex flex-wrap items-center gap-2 pr-8">
           <Pill color={STATUS[inc.status].pill}>{STATUS[inc.status].label}</Pill>
           {inc.priority === 'urgent' && !done && <Pill color="terracotta">URGENTE</Pill>}
           {inc.category && <span className="text-xs font-semibold text-ink/40">{inc.category}</span>}
@@ -104,16 +121,11 @@ function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint }) {
             </div>
           )}
 
-          {/* Eliminar (admin): borrado en dos pasos para evitar accidentes */}
           {confirmDel ? (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-terracotta/8 p-2">
               <span className="flex-1 px-1 text-sm font-semibold text-terracotta">¿Eliminar definitivamente?</span>
-              <button onClick={() => setConfirmDel(false)} className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-ink/60 transition-enter active:scale-95">
-                Cancelar
-              </button>
-              <button onClick={() => onDelete(inc)} className="rounded-lg bg-terracotta px-3 py-2 text-sm font-extrabold text-white transition-enter active:scale-95">
-                Sí, eliminar
-              </button>
+              <button onClick={() => setConfirmDel(false)} className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-ink/60 transition-enter active:scale-95">Cancelar</button>
+              <button onClick={() => onDelete(inc)} className="rounded-lg bg-terracotta px-3 py-2 text-sm font-extrabold text-white transition-enter active:scale-95">Sí, eliminar</button>
             </div>
           ) : (
             <button onClick={() => setConfirmDel(true)} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold text-terracotta transition-enter active:scale-95">
@@ -126,6 +138,16 @@ function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint }) {
   )
 }
 
+function SortableIncident({ inc, ...rest }) {
+  const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id: inc.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  return (
+    <div ref={setNodeRef} style={style} className={isDragging ? 'relative z-20 opacity-80 shadow-float' : 'relative'}>
+      <IncidentCard inc={inc} dragHandle={{ attributes, listeners }} {...rest} />
+    </div>
+  )
+}
+
 export default function AdminIncidents() {
   const { employee } = useSession()
   const toast = useToast()
@@ -135,13 +157,39 @@ export default function AdminIncidents() {
   const [sf, setSf] = useState('open')
   const [editTags, setEditTags] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [items, setItems] = useState([])
 
   const isMaint = source === 'mantenimiento'
   const active = isMaint ? maintenance : incidencias
   const list = active.data || []
   const done = list.filter((i) => i.status === 'done')
-  const open = list.filter((i) => i.status !== 'done')
-  const shown = sf === 'open' ? open : sf === 'done' ? done : list
+
+  // Sincroniza la lista ordenable con los datos y el filtro.
+  useEffect(() => {
+    const l = active.data || []
+    const filtered = sf === 'open' ? l.filter((i) => i.status !== 'done') : sf === 'done' ? l.filter((i) => i.status === 'done') : l
+    setItems(filtered)
+  }, [active.data, sf, source]) // eslint-disable-line
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+  )
+
+  function onDragEnd(e) {
+    const { active: a, over } = e
+    if (!over || a.id === over.id) return
+    setItems((cur) => {
+      const oldI = cur.findIndex((x) => x.id === a.id)
+      const newI = cur.findIndex((x) => x.id === over.id)
+      if (oldI < 0 || newI < 0) return cur
+      const next = arrayMove(cur, oldI, newI)
+      haptic('tap')
+      const fn = isMaint ? reorderMaintenance : reorderIncidencias
+      fn(next.map((x) => x.id)).then(() => active.reload(true)).catch(() => toast('No se pudo reordenar', 'error'))
+      return next
+    })
+  }
 
   async function onStart(i) {
     try {
@@ -167,7 +215,6 @@ export default function AdminIncidents() {
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Toggle de fuente */}
       <div className="flex gap-2">
         {SOURCES.map((s) => {
           const Icon = s.icon
@@ -225,17 +272,27 @@ export default function AdminIncidents() {
 
       {active.loading ? (
         <div className="flex justify-center py-10"><Spinner className="h-7 w-7" /></div>
-      ) : shown.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState icon={isMaint ? Wrench : Alert} title="Nada por aquí" subtitle="No hay registros en este filtro." />
       ) : (
-        <div className="space-y-3">
-          {shown.map((i) => <IncidentCard key={i.id} inc={i} onStart={onStart} onResolve={onResolve} onDelete={onDelete} isMaint={isMaint} />)}
-        </div>
+        <>
+          <p className="-mt-1 flex items-center gap-1.5 px-1 text-xs text-ink/40">
+            <GripVertical size={13} /> Arrastra para ordenar{isMaint ? ' — el técnico lo verá en este orden' : ''}
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {items.map((i) => (
+                  <SortableIncident key={i.id} inc={i} onStart={onStart} onResolve={onResolve} onDelete={onDelete} isMaint={isMaint} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
       <IncidenciaTypesEditor open={editTags} onClose={() => setEditTags(false)} />
 
-      {/* Alta de incidencia/parte por el admin (reutiliza el formulario del coach) */}
       <ReportIncident
         open={adding}
         onClose={() => setAdding(false)}

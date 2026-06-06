@@ -146,6 +146,18 @@ export function isTodayStr(str) {
   return str === todayMadrid()
 }
 
+// Un día concreto (+offset = días hacia atrás). Para navegación en estadísticas.
+export function dayBounds(offset = 0) {
+  const [y, m, d] = todayMadrid().split('-').map(Number)
+  const base = new Date(y, m - 1, d - offset)
+  const str = toStr(base)
+  let label
+  if (offset === 0) label = 'Hoy'
+  else if (offset === 1) label = 'Ayer'
+  else label = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(base)
+  return { startStr: str, endStr: str, days: [str], label }
+}
+
 // ¿La plantilla aplica hoy? weekdays vacío = todos los días.
 export function appliesToday(weekdays) {
   if (!weekdays || weekdays.length === 0) return true

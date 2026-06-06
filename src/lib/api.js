@@ -86,7 +86,6 @@ export async function listTemplates(role) {
     .eq('role', role)
     .eq('active', true)
     .order('section')
-    .order('scheduled_time', { nullsFirst: true })
     .order('sort_order')
   if (error) throw error
   return data
@@ -116,6 +115,14 @@ export async function updateTemplate(id, patch) {
 export async function deleteTemplate(id) {
   const { error } = await supabase.from('task_templates').delete().eq('id', id)
   if (error) throw error
+}
+
+// ids: array of template ids in the desired order
+export async function reorderTemplates(ids) {
+  const updates = ids.map((id, i) => supabase.from('task_templates').update({ sort_order: i }).eq('id', id))
+  const results = await Promise.all(updates)
+  const failed = results.find((r) => r.error)
+  if (failed) throw failed.error
 }
 
 // ---------- COMPLETADOS ----------
@@ -163,6 +170,18 @@ export async function listAdHoc(targetRole) {
   return data
 }
 
+export async function rangeAdHoc(targetRole, fromDate, toDate) {
+  const { data, error } = await supabase
+    .from('ad_hoc_tasks')
+    .select('*')
+    .eq('target_role', targetRole)
+    .gte('work_date', fromDate)
+    .lte('work_date', toDate)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function createAdHoc(t) {
   const { error } = await supabase.from('ad_hoc_tasks').insert(t)
   if (error) throw error
@@ -201,11 +220,15 @@ export async function listIncidencias() {
   const { data, error } = await supabase
     .from('incidents')
     .select('*')
-    .order('status')
-    .order('priority', { ascending: false })
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
+}
+
+export async function reorderIncidencias(orderedIds) {
+  await Promise.all(orderedIds.map((id, i) =>
+    supabase.from('incidents').update({ sort_order: i }).eq('id', id)))
 }
 
 export async function createIncidencia(i) {
@@ -255,11 +278,16 @@ export async function listMaintenance() {
   const { data, error } = await supabase
     .from('maintenance_tasks')
     .select('*')
-    .order('status')
-    .order('priority', { ascending: false })
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
+}
+
+// Reordena (drag & drop del admin): sort_order = posición en la lista.
+export async function reorderMaintenance(orderedIds) {
+  await Promise.all(orderedIds.map((id, i) =>
+    supabase.from('maintenance_tasks').update({ sort_order: i }).eq('id', id)))
 }
 
 export async function createMaintenance(t) {
@@ -290,19 +318,50 @@ export async function listShifts(fromDate, toDate) {
   return data
 }
 
-export async function upsertShift(shift) {
-  const { error } = await supabase
-    .from('shifts')
-    .upsert(shift, { onConflict: 'employee_id,work_date' })
+// Varias franjas por día permitidas: se gestionan por id.
+export async function createShift(shift) {
+  const { data, error } = await supabase.from('shifts').insert(shift).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function updateShift(id, patch) {
+  const { error } = await supabase.from('shifts').update(patch).eq('id', id)
   if (error) throw error
 }
 
-export async function deleteShift(employeeId, workDate) {
-  const { error } = await supabase
-    .from('shifts')
-    .delete()
-    .eq('employee_id', employeeId)
-    .eq('work_date', workDate)
+export async function deleteShift(id) {
+  const { error } = await supabase.from('shifts').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- PUBLICACIÓN DE HORARIO POR SEMANA ----------
+export async function getScheduleWeek(weekStart) {
+  const { data, error } = await supabase
+    .from('schedule_weeks')
+    .select('*')
+    .eq('week_start', weekStart)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function publishWeek(weekStart, employeeId) {
+  const { error } = await supabase.from('schedule_weeks').upsert({
+    week_start: weekStart,
+    status: 'published',
+    published_at: new Date().toISOString(),
+    published_by: employeeId,
+  }, { onConflict: 'week_start' })
+  if (error) throw error
+}
+
+export async function unpublishWeek(weekStart) {
+  const { error } = await supabase.from('schedule_weeks').upsert({
+    week_start: weekStart,
+    status: 'draft',
+    published_at: null,
+  }, { onConflict: 'week_start' })
   if (error) throw error
 }
 

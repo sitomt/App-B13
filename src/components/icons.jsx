@@ -42,6 +42,7 @@ export const Megaphone = (p) => (
 )
 export const Chevron = (p) => <S {...p}><path d="m9 18 6-6-6-6" /></S>
 export const ChevronDown = (p) => <S {...p}><path d="m6 9 6 6 6-6" /></S>
+export const GripVertical = (p) => <S {...p}><circle cx="9" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="19" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="19" r="1" fill="currentColor" stroke="none"/></S>
 export const Dumbbell = (p) => (
   <S {...p}><path d="m6.5 6.5 11 11" /><path d="M21 21l-1-1M3 3l1 1" /><path d="m18 22 4-4M2 6l4-4" /><path d="m7 17-5-5M22 12l-5-5" /></S>
 )
