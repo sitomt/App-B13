@@ -7,6 +7,8 @@ import { buildAgenda } from '../../lib/agenda'
 import { useState } from 'react'
 import { todayMadrid, timeHM, relativeTime, appliesToday } from '../../lib/date'
 import { Card, SectionTitle, Pill, ProgressRing, Spinner } from '../../components/ui'
+import { AnnouncementCard } from '../../components/cards'
+import { BirthdayNotice } from '../../components/Birthday'
 import { User, Activity, Alert, Megaphone, Spray, Coffee, Utensils, Check, Refresh, ChevronDown, Clock } from '../../components/icons'
 
 const STATUS_META = {
@@ -125,10 +127,13 @@ export default function AdminDashboard() {
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   const today = todayMadrid()
   const activeAnn = (ann.data || []).filter((a) => a.active && a.starts_on <= today && a.ends_on >= today)
+  // Avisos entrantes dirigidos a dirección (los lanzan limpieza/mantenimiento).
+  const incomingTeam = activeAnn.filter((a) => (a.target_roles || []).includes('admin'))
   const urgentClean = (adhoc.data || []).filter((t) => t.status === 'pending' && t.priority === 'urgent')
 
   return (
     <div className="space-y-5 pb-24">
+      <BirthdayNotice />
       {/* En directo */}
       <div className="flex items-center gap-2 px-1">
         <span className="relative flex h-2.5 w-2.5">
@@ -136,18 +141,6 @@ export default function AdminDashboard() {
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sage" />
         </span>
         <span className="text-sm font-semibold text-ink/55">En directo · actualizado {timeHM(new Date().toISOString())}</span>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <p className="font-display text-4xl font-extrabold text-ink">{present.length}</p>
-          <p className="text-sm text-ink/50">fichados ahora</p>
-        </Card>
-        <Card className="p-4">
-          <p className={`font-display text-4xl font-extrabold ${openAll.length ? 'text-terracotta' : 'text-sage'}`}>{openAll.length}</p>
-          <p className="text-sm text-ink/50">incidencias abiertas</p>
-        </Card>
       </div>
 
       {/* Aviso urgente activo a limpieza */}
@@ -161,6 +154,16 @@ export default function AdminDashboard() {
             <p key={t.id} className="mt-1 text-sm text-ink/60">· {t.title} {t.zone && `(${t.zone})`}</p>
           ))}
         </Card>
+      )}
+
+      {/* Avisos entrantes del equipo (limpieza / mantenimiento → dirección) */}
+      {incomingTeam.length > 0 && (
+        <div>
+          <SectionTitle icon={Megaphone} right={<Pill color="bronze">{incomingTeam.length}</Pill>}>Avisos del equipo</SectionTitle>
+          <div className="space-y-2">
+            {incomingTeam.map((a) => <AnnouncementCard key={a.id} a={a} />)}
+          </div>
+        </div>
       )}
 
       {/* Quién está — solo quien está fichado (en turno o en pausa/comida).

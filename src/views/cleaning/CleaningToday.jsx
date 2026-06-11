@@ -5,6 +5,7 @@ import { listTemplates, todayCompletions, listAdHoc, activeAnnouncements } from 
 import { useData } from '../../lib/useData'
 import { buildAgenda } from '../../lib/agenda'
 import { useSession } from '../../state/session'
+import { BirthdayNotice } from '../../components/Birthday'
 import { Map, Spray, Megaphone, Activity, Alert } from '../../components/icons'
 
 export default function CleaningToday() {
@@ -26,6 +27,7 @@ export default function CleaningToday() {
 
   return (
     <div className="space-y-5 pb-24">
+      <BirthdayNotice />
       {urgentPending.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 px-1 text-terracotta">

@@ -8,6 +8,7 @@ import { buildAgenda } from '../../lib/agenda'
 import { haptic } from '../../lib/haptics'
 import { useToast } from '../../components/Toast'
 import { useSession } from '../../state/session'
+import { BirthdayNotice } from '../../components/Birthday'
 import { Sunrise, Moon, Activity, Megaphone, ChevronDown, Check } from '../../components/icons'
 
 function Collapsible({ icon: Icon, title, count, total, defaultOpen = true, action, children }) {
@@ -73,6 +74,7 @@ export default function CoachToday() {
 
   return (
     <div className="space-y-5 pb-24">
+      <BirthdayNotice />
       <Fichaje employee={employee} />
 
       {ann.data && ann.data.length > 0 && (

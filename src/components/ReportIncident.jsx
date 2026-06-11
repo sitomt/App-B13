@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import Sheet from './Sheet'
-import { createIncidencia, createMaintenance, uploadPhoto, listIncidenciaTypes } from '../lib/api'
+import { createIncidencia, createMaintenance, uploadPhoto, listIncidenciaTypes, listAreas } from '../lib/api'
 import { useData } from '../lib/useData'
 import { useToast } from './Toast'
 import { Alert, Camera, X } from './icons'
@@ -22,6 +22,8 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
   const isMant = target === 'mantenimiento'
   // Las etiquetas de incidencia interna son editables por el admin (tabla incidencia_types).
   const types = useData(() => (isMant ? Promise.resolve([]) : listIncidenciaTypes()), [isMant])
+  // Las áreas (locales de la instalación) aplican a ambos tipos de reporte.
+  const areas = useData(listAreas, [])
   const CATEGORIES = isMant
     ? CATS_MANT
     : (types.data || []).map((t) => ({ key: t.label, label: t.label }))
@@ -31,6 +33,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
     : 'Cualquier incidencia del día: ruido de un vecino, un socio, material deportivo roto… Queda registrada para el admin.'
   const placeholder = isMant ? 'Ej: La puerta del vestuario no cierra' : 'Ej: Vecino se ha quejado del ruido'
   const [category, setCategory] = useState(null)
+  const [area, setArea] = useState(null)
   const [zone, setZone] = useState(null)
   const [title, setTitle] = useState('')
   const [urgent, setUrgent] = useState(false)
@@ -40,7 +43,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
   const toast = useToast()
 
   function reset() {
-    setCategory(null); setZone(null); setTitle(''); setUrgent(false)
+    setCategory(null); setArea(null); setZone(null); setTitle(''); setUrgent(false)
     if (photo?.preview) URL.revokeObjectURL(photo.preview)
     setPhoto(null)
   }
@@ -53,6 +56,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
 
   async function submit() {
     if (!title.trim()) { toast('Describe qué pasa', 'error'); return }
+    if (!area) { toast('Elige el área', 'error'); return }
     setBusy(true)
     try {
       let photo_url = null
@@ -62,6 +66,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
       }
       const payload = {
         title: title.trim(),
+        area,
         zone,
         category: category || 'otro',
         photo_url,
@@ -107,6 +112,21 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
             }`}
           >
             {c.label}
+          </button>
+        ))}
+      </div>
+
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Área / local</label>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(areas.data || []).map((a) => (
+          <button
+            key={a.id}
+            onClick={() => setArea(a.name === area ? null : a.name)}
+            className={`rounded-full px-3.5 py-2 text-sm font-semibold transition active:scale-95 ${
+              area === a.name ? 'bg-ink text-white' : 'bg-ink/5 text-ink/70'
+            }`}
+          >
+            {a.name}
           </button>
         ))}
       </div>

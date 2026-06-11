@@ -18,6 +18,41 @@ export async function listEmployees() {
   return data
 }
 
+// Todos los perfiles, incluidos los desactivados (para gestión del admin).
+export async function listAllEmployees() {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .order('active', { ascending: false })
+    .order('role')
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+// Alta de un nuevo perfil. Crea la fila en la BD (login simulado actual).
+export async function createEmployee({ name, role, color, birth_date = null }) {
+  const { data, error } = await supabase
+    .from('employees')
+    .insert({ name, role, color, birth_date })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateEmployee(id, patch) {
+  const { error } = await supabase.from('employees').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+// Baja lógica: conserva el histórico (fichajes, turnos, incidencias) y lo
+// retira de la app. Reversible con updateEmployee(id, { active: true }).
+export async function deactivateEmployee(id) {
+  const { error } = await supabase.from('employees').update({ active: false }).eq('id', id)
+  if (error) throw error
+}
+
 // ---------- FICHAJES ----------
 const KIND_LABEL = {
   clock_in: 'Entrada',
@@ -273,6 +308,35 @@ export async function deleteIncidenciaType(id) {
   if (error) throw error
 }
 
+// ---------- ÁREAS / LOCALES (editables por el admin) ----------
+// Los distintos locales de la instalación (Musculación, Pilates, Artes
+// marciales, Clases dirigidas…). Quien reporta una incidencia elige el área.
+export async function listAreas() {
+  const { data, error } = await supabase
+    .from('areas')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order')
+  if (error) throw error
+  return data
+}
+
+export async function createArea(name, sortOrder = 99) {
+  const { error } = await supabase.from('areas').insert({ name, sort_order: sortOrder })
+  if (error) throw error
+}
+
+export async function updateArea(id, patch) {
+  const { error } = await supabase.from('areas').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteArea(id) {
+  // Borrado lógico para no perder el área de los partes ya etiquetados
+  const { error } = await supabase.from('areas').update({ active: false }).eq('id', id)
+  if (error) throw error
+}
+
 // ---------- MANTENIMIENTO (partes del técnico externo, instalaciones) ----------
 export async function listMaintenance() {
   const { data, error } = await supabase
@@ -303,6 +367,43 @@ export async function updateMaintenance(id, patch) {
 export async function deleteMaintenance(id) {
   const { error } = await supabase.from('maintenance_tasks').delete().eq('id', id)
   if (error) throw error
+}
+
+// ---------- MANTENIMIENTO PREVENTIVO (tareas recurrentes programadas) ----------
+// El admin define plantillas que se materializan solas en su cola destino
+// (maintenance_tasks o incidents) cuando llega la fecha. target: 'mantenimiento' | 'incidencia'.
+export async function listRecurring(target) {
+  const { data, error } = await supabase
+    .from('recurring_tasks')
+    .select('*')
+    .eq('target', target)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function createRecurring(plan) {
+  const { error } = await supabase.from('recurring_tasks').insert(plan)
+  if (error) throw error
+}
+
+export async function updateRecurring(id, patch) {
+  const { error } = await supabase.from('recurring_tasks').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteRecurring(id) {
+  const { error } = await supabase.from('recurring_tasks').delete().eq('id', id)
+  if (error) throw error
+}
+
+// "Catch-up": genera las tareas preventivas vencidas hasta hoy (idempotente).
+// El cron diario también lo hace; esto evita depender solo de él y permite ver el efecto al instante.
+export async function runDueRecurring() {
+  const { data, error } = await supabase.rpc('generate_due_recurring_tasks')
+  if (error) throw error
+  return data // nº de tareas generadas
 }
 
 // ---------- HORARIOS (shifts) ----------
@@ -420,5 +521,31 @@ export async function createAnnouncement(a) {
 
 export async function updateAnnouncement(id, patch) {
   const { error } = await supabase.from('announcements').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+// ---------- FEEDBACK (coach → dirección/admin) ----------
+// Tipos: 'cliente' | 'sugerencia' (a dirección) | 'app' (usabilidad).
+export async function listFeedback() {
+  const { data, error } = await supabase
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function createFeedback(f) {
+  const { error } = await supabase.from('feedback').insert(f)
+  if (error) throw error
+}
+
+export async function updateFeedback(id, patch) {
+  const { error } = await supabase.from('feedback').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteFeedback(id) {
+  const { error } = await supabase.from('feedback').delete().eq('id', id)
   if (error) throw error
 }

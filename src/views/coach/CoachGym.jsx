@@ -7,7 +7,7 @@ import { useData } from '../../lib/useData'
 import { buildAgenda } from '../../lib/agenda'
 import { useSession } from '../../state/session'
 import { useToast } from '../../components/Toast'
-import { Card, SectionTitle, Pill, ProgressRing, Skeleton, EmptyState } from '../../components/ui'
+import { Card, CollapsibleSection, Pill, ProgressRing, Skeleton, EmptyState } from '../../components/ui'
 import { Alert, Wrench, Spray, Check, Clock, User } from '../../components/icons'
 import { relativeTime, timeHM } from '../../lib/date'
 
@@ -45,8 +45,12 @@ export default function CoachGym() {
   return (
     <div className="space-y-6 pb-24">
       {/* Incidencias internas abiertas (el coach puede resolverlas) */}
-      <div>
-        <SectionTitle icon={Alert} right={<Pill color={openIncid.length ? 'terracotta' : 'sage'}>{openIncid.length}</Pill>}>Incidencias abiertas</SectionTitle>
+      <CollapsibleSection
+        icon={Alert}
+        title="Incidencias abiertas"
+        right={<Pill color={openIncid.length ? 'terracotta' : 'sage'}>{openIncid.length}</Pill>}
+        persistKey={`b13.coachgym.incidencias.${employee.id}`}
+      >
         {incid.loading ? (
           <Skeleton className="h-20 w-full rounded-xl2" />
         ) : openIncid.length === 0 ? (
@@ -77,11 +81,15 @@ export default function CoachGym() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Mantenimiento activo/pendiente (solo lectura: lo lleva el técnico) */}
-      <div>
-        <SectionTitle icon={Wrench} right={<Pill color={openMaint.length ? 'ochre' : 'sage'}>{openMaint.length}</Pill>}>Mantenimiento activo</SectionTitle>
+      <CollapsibleSection
+        icon={Wrench}
+        title="Mantenimiento activo"
+        right={<Pill color={openMaint.length ? 'ochre' : 'sage'}>{openMaint.length}</Pill>}
+        persistKey={`b13.coachgym.maintenance.${employee.id}`}
+      >
         {openMaint.length === 0 ? (
           <Card className="flex items-center gap-2 p-4 text-sage"><Check size={18} /><span className="text-sm font-semibold">Nada roto pendiente</span></Card>
         ) : (
@@ -99,11 +107,14 @@ export default function CoachGym() {
           </div>
         )}
         <p className="mt-2 px-1 text-xs text-ink/40">Antes de reportar algo roto, revisa si ya está aquí para no duplicar.</p>
-      </div>
+      </CollapsibleSection>
 
       {/* Cómo va la limpieza de hoy (solo lectura) */}
-      <div>
-        <SectionTitle icon={Spray}>Limpieza de hoy</SectionTitle>
+      <CollapsibleSection
+        icon={Spray}
+        title="Limpieza de hoy"
+        persistKey={`b13.coachgym.cleaning.${employee.id}`}
+      >
         {ctpl.loading ? (
           <Skeleton className="h-20 w-full rounded-xl2" />
         ) : cleanItems.length === 0 ? (
@@ -136,7 +147,7 @@ export default function CoachGym() {
             </div>
           </Card>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }

@@ -4,11 +4,13 @@ import BottomNav from '../components/BottomNav'
 import SpeedDial from '../components/SpeedDial'
 import ReportIncident from '../components/ReportIncident'
 import CleaningRequest from '../components/CleaningRequest'
+import FeedbackSheet from '../components/FeedbackSheet'
+import AnnouncementSheet from '../components/AnnouncementSheet'
 import CoachToday from './coach/CoachToday'
 import CoachGym from './coach/CoachGym'
 import ScheduleScreen from './ScheduleScreen'
 import { useSession } from '../state/session'
-import { Activity, Dumbbell, Calendar, Alert, Wrench, Spray } from '../components/icons'
+import { Activity, Dumbbell, Calendar, Alert, Wrench, Spray, Chat, Megaphone } from '../components/icons'
 
 const TABS = [
   { key: 'hoy', label: 'Hoy', icon: Activity },
@@ -23,6 +25,8 @@ export default function CoachView() {
   const [reportOpen, setReportOpen] = useState(false)     // mantenimiento (instalaciones)
   const [incidentOpen, setIncidentOpen] = useState(false) // incidencia interna
   const [cleanOpen, setCleanOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [annOpen, setAnnOpen] = useState(false)
 
   return (
     <Screen>
@@ -36,6 +40,8 @@ export default function CoachView() {
 
       <SpeedDial
         actions={[
+          { icon: Chat, label: 'Feedback', tone: 'ink', onClick: () => setFeedbackOpen(true) },
+          { icon: Megaphone, label: 'Aviso al equipo', tone: 'ink', onClick: () => setAnnOpen(true) },
           { icon: Alert, label: 'Reportar incidencia', tone: 'ink', onClick: () => setIncidentOpen(true) },
           { icon: Wrench, label: 'Algo roto · Mantenimiento', tone: 'terracotta', onClick: () => setReportOpen(true) },
           { icon: Spray, label: 'Algo sucio · Limpieza', tone: 'bronze', onClick: () => setCleanOpen(true) },
@@ -44,6 +50,8 @@ export default function CoachView() {
       <ReportIncident target="incidencia" open={incidentOpen} onClose={() => setIncidentOpen(false)} employee={employee} />
       <ReportIncident target="mantenimiento" open={reportOpen} onClose={() => setReportOpen(false)} employee={employee} />
       <CleaningRequest open={cleanOpen} onClose={() => setCleanOpen(false)} employee={employee} />
+      <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} employee={employee} />
+      <AnnouncementSheet open={annOpen} onClose={() => setAnnOpen(false)} employee={employee} authorRole="coach" allowHighlight={false} />
 
       <BottomNav tabs={TABS} active={tab} onChange={setTab} />
     </Screen>

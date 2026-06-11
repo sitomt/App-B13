@@ -87,6 +87,12 @@ export function daysBetween(fromIso, toIso = null) {
   return Math.floor((b - a) / 86400000)
 }
 
+// ¿La fecha de nacimiento 'YYYY-MM-DD' cumple años hoy (en Madrid)? Compara mes-día.
+export function isBirthdayToday(birthDate) {
+  if (!birthDate) return false
+  return birthDate.slice(5, 10) === todayMadrid().slice(5, 10)
+}
+
 export function greetingMadrid() {
   const h = +new Intl.DateTimeFormat('en-US', {
     timeZone: TZ, hour: '2-digit', hour12: false,
@@ -162,4 +168,39 @@ export function dayBounds(offset = 0) {
 export function appliesToday(weekdays) {
   if (!weekdays || weekdays.length === 0) return true
   return weekdays.includes(weekdayMadrid())
+}
+
+// ---- Helpers de mantenimiento preventivo (tareas recurrentes por meses del año) ----
+const MONTHS_SHORT_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+// "Todos los meses" / "Cada enero" / "Cada enero y julio" / "Cada enero, abril y julio".
+// months: array de 1..12.
+export function recurrenceLabel(months) {
+  const m = [...(months || [])].filter((x) => x >= 1 && x <= 12).sort((a, b) => a - b)
+  if (m.length === 0) return 'Sin meses'
+  if (m.length === 12) return 'Todos los meses'
+  const names = m.map((x) => MONTHS_ES[x - 1])
+  if (names.length === 1) return `Cada ${names[0]}`
+  const last = names.pop()
+  return `Cada ${names.join(', ')} y ${last}`
+}
+
+// Próxima fecha futura (string corto "1 jul 2026") en que se generaría la tarea, o null si nunca.
+// Busca el primer día que cumpla: mes ∈ months, día = dayOfMonth, y fecha >= max(hoy, startOn).
+export function nextOccurrence(months, dayOfMonth, startOn) {
+  const m = (months || []).filter((x) => x >= 1 && x <= 12)
+  if (m.length === 0) return null
+  const day = Math.min(Math.max(dayOfMonth || 1, 1), 28)
+  const today = parseDate(todayMadrid())
+  const start = startOn ? parseDate(startOn) : today
+  const from = start > today ? start : today
+  // Recorre hasta 24 meses por delante buscando la primera coincidencia.
+  for (let i = 0; i < 24; i++) {
+    const probe = new Date(from.getFullYear(), from.getMonth() + i, day, 12, 0, 0)
+    if (probe < from) continue
+    if (m.includes(probe.getMonth() + 1)) {
+      return `${probe.getDate()} ${MONTHS_SHORT_ES[probe.getMonth()]} ${probe.getFullYear()}`
+    }
+  }
+  return null
 }

@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Sheet from './Sheet'
+import { ChevronDown } from './icons'
+import { haptic } from '../lib/haptics'
 
 export function Card({ className = '', children, ...p }) {
   return (
@@ -136,6 +138,49 @@ export function SectionTitle({ icon: Icon, children, right }) {
         <h2 className="font-display text-xl font-bold tracking-tight">{children}</h2>
       </div>
       {right}
+    </div>
+  )
+}
+
+// Sección con cabecera plegable cuyo estado abierto/cerrado se recuerda en
+// localStorage (clave `persistKey`). El contador `right` se ve siempre, incluso
+// plegado. Para persistir por usuario, incluye el id del empleado en persistKey.
+export function CollapsibleSection({ icon: Icon, title, right, persistKey, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const v = persistKey ? localStorage.getItem(persistKey) : null
+      return v === null ? defaultOpen : v === '1'
+    } catch {
+      return defaultOpen
+    }
+  })
+
+  function toggle() {
+    haptic('tap')
+    setOpen((o) => {
+      const next = !o
+      try { if (persistKey) localStorage.setItem(persistKey, next ? '1' : '0') } catch { /* ignora quota/privado */ }
+      return next
+    })
+  }
+
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="mb-2 flex w-full items-center justify-between px-1 active:opacity-70"
+      >
+        <span className="flex items-center gap-2 text-ink/70">
+          {Icon && <Icon size={18} />}
+          <span className="font-display text-xl font-bold tracking-tight">{title}</span>
+        </span>
+        <span className="flex items-center gap-2">
+          {right}
+          <ChevronDown size={18} className={`text-ink/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+      {open && <div className="animate-rise-in">{children}</div>}
     </div>
   )
 }

@@ -3,13 +3,14 @@ import { Header, Screen, Fab } from '../components/AppShell'
 import { Card, SectionTitle, Pill, Skeleton, EmptyState } from '../components/ui'
 import Sheet from '../components/Sheet'
 import ReportIncident from '../components/ReportIncident'
-import ScheduleOverlay from '../components/ScheduleOverlay'
-import { listMaintenance, updateMaintenance, activeAnnouncements } from '../lib/api'
+import AnnouncementSheet from '../components/AnnouncementSheet'
+import { listMaintenance, updateMaintenance, activeAnnouncements, listAreas } from '../lib/api'
 import { useData } from '../lib/useData'
 import { useSession } from '../state/session'
 import { useToast } from '../components/Toast'
 import { AnnouncementCard } from '../components/cards'
-import { Wrench, Alert, Check, Clock, User, Megaphone, Plus } from '../components/icons'
+import { BirthdayNotice } from '../components/Birthday'
+import { Wrench, Alert, Check, Clock, User, Megaphone, Plus, Pencil } from '../components/icons'
 import { relativeTime, timeHM } from '../lib/date'
 
 const STATUS = {
@@ -18,15 +19,16 @@ const STATUS = {
   done: { label: 'Resuelta', pill: 'sage' },
 }
 
-function IncidentCard({ inc, onStart, onResolve }) {
+function IncidentCard({ inc, onStart, onResolve, onNote }) {
   const urgent = inc.priority === 'urgent'
   const done = inc.status === 'done'
   return (
     <Card className={`overflow-hidden ${done ? 'opacity-70' : ''}`}>
       <div className="p-4">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
           <Pill color={STATUS[inc.status].pill}>{STATUS[inc.status].label}</Pill>
           {urgent && !done && <Pill color="terracotta">URGENTE</Pill>}
+          {inc.area && <Pill color="bronze">{inc.area}</Pill>}
           {inc.category && <span className="text-xs font-semibold text-ink/40">{inc.category}</span>}
           <span className="ml-auto text-xs text-ink/35">{relativeTime(inc.created_at)}</span>
         </div>
@@ -41,9 +43,9 @@ function IncidentCard({ inc, onStart, onResolve }) {
         <p className="mt-2 flex items-center gap-1 text-xs text-ink/40">
           <User size={12} /> Reportado por {inc.reported_by_name || 'desconocido'}
         </p>
-        {done && inc.resolution_notes && (
-          <div className="mt-2 rounded-xl bg-sage/8 p-2.5 text-sm text-sage">
-            <span className="font-semibold">Resolución:</span> {inc.resolution_notes}
+        {inc.resolution_notes && (
+          <div className={`mt-2 rounded-xl p-2.5 text-sm ${done ? 'bg-sage/8 text-sage' : 'bg-ochre/10 text-[#8a6a1e]'}`}>
+            <span className="font-semibold">{done ? 'Resolución:' : 'Nota:'}</span> {inc.resolution_notes}
           </div>
         )}
       </div>
@@ -54,8 +56,11 @@ function IncidentCard({ inc, onStart, onResolve }) {
               <Clock size={16} /> Empezar
             </button>
           )}
+          <button onClick={() => onNote(inc)} className="flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-bold text-ink/60 active:bg-ink/[0.03]">
+            <Pencil size={15} /> {inc.resolution_notes ? 'Editar nota' : 'Nota'}
+          </button>
           <button onClick={() => onResolve(inc)} className="flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-bold text-sage active:bg-ink/[0.03]">
-            <Check size={16} /> Marcar resuelta
+            <Check size={16} /> Resolver
           </button>
         </div>
       )}
@@ -68,13 +73,30 @@ export default function MaintenanceView() {
   const toast = useToast()
   const inc = useData(listMaintenance, [], { interval: 20000 })
   const ann = useData(() => activeAnnouncements('maintenance'), [], { interval: 60000 })
+  const areas = useData(listAreas, [])
+  const [areaFilter, setAreaFilter] = useState(null) // null = todas las áreas
   const [resolving, setResolving] = useState(null)
   const [note, setNote] = useState('')
+  const [noting, setNoting] = useState(null)   // tarea a la que se le añade/edita nota
+  const [noteDraft, setNoteDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
-  const [schedule, setSchedule] = useState(false)
+  const [annOpen, setAnnOpen] = useState(false) // aviso a coaches (no a limpieza)
 
-  const list = inc.data || []
+  function openResolve(i) { setResolving(i); setNote(i.resolution_notes || '') }
+  function openNote(i) { setNoting(i); setNoteDraft(i.resolution_notes || '') }
+
+  async function saveNote() {
+    setBusy(true)
+    try {
+      await updateMaintenance(noting.id, { resolution_notes: noteDraft.trim() || null })
+      await inc.reload(true)
+      toast('Nota guardada ✓')
+      setNoting(null); setNoteDraft('')
+    } catch { toast('No se pudo guardar', 'error') } finally { setBusy(false) }
+  }
+
+  const list = (inc.data || []).filter((i) => !areaFilter || i.area === areaFilter)
   const pending = list.filter((i) => i.status === 'pending')
   const inProgress = list.filter((i) => i.status === 'in_progress')
   const done = list.filter((i) => i.status === 'done')
@@ -108,12 +130,11 @@ export default function MaintenanceView() {
     } catch { toast('No se pudo actualizar', 'error') } finally { setBusy(false) }
   }
 
-  if (schedule) return <ScheduleOverlay onClose={() => setSchedule(false)} />
-
   return (
     <Screen>
-      <Header subtitle="Mantenimiento" onCalendar={() => setSchedule(true)} />
+      <Header subtitle="Mantenimiento" onAnnounce={() => setAnnOpen(true)} />
       <div className="mx-auto max-w-md space-y-5 px-4 pt-4">
+        <BirthdayNotice />
         {/* Resumen */}
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -127,6 +148,30 @@ export default function MaintenanceView() {
             </Card>
           ))}
         </div>
+
+        {areas.data && areas.data.length > 1 && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            <button
+              onClick={() => setAreaFilter(null)}
+              className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95 ${
+                areaFilter === null ? 'bg-bronze text-white' : 'bg-ink/5 text-ink/60'
+              }`}
+            >
+              Todas
+            </button>
+            {areas.data.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setAreaFilter(a.name)}
+                className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95 ${
+                  areaFilter === a.name ? 'bg-bronze text-white' : 'bg-ink/5 text-ink/60'
+                }`}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {ann.data && ann.data.length > 0 && ann.data.map((a) => <AnnouncementCard key={a.id} a={a} />)}
 
@@ -143,7 +188,7 @@ export default function MaintenanceView() {
                 <div className="space-y-3">
                   {pending.map((i, idx) => (
                     <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
-                      <IncidentCard inc={i} onStart={start} onResolve={setResolving} />
+                      <IncidentCard inc={i} onStart={start} onResolve={openResolve} onNote={openNote} />
                     </div>
                   ))}
                 </div>
@@ -155,7 +200,7 @@ export default function MaintenanceView() {
                 <div className="space-y-3">
                   {inProgress.map((i, idx) => (
                     <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
-                      <IncidentCard inc={i} onStart={start} onResolve={setResolving} />
+                      <IncidentCard inc={i} onStart={start} onResolve={openResolve} onNote={openNote} />
                     </div>
                   ))}
                 </div>
@@ -165,7 +210,7 @@ export default function MaintenanceView() {
               <div>
                 <SectionTitle icon={Check}>Resueltas</SectionTitle>
                 <div className="space-y-3">
-                  {done.map((i) => <IncidentCard key={i.id} inc={i} onStart={start} onResolve={setResolving} />)}
+                  {done.map((i) => <IncidentCard key={i.id} inc={i} onStart={start} onResolve={openResolve} onNote={openNote} />)}
                 </div>
               </div>
             )}
@@ -176,6 +221,10 @@ export default function MaintenanceView() {
 
       <Fab icon={Plus} ariaLabel="Nueva tarea de mantenimiento" tone="bronze" onClick={() => setReportOpen(true)} />
       <ReportIncident open={reportOpen} onClose={() => setReportOpen(false)} employee={employee} onCreated={() => inc.reload(true)} />
+      <AnnouncementSheet
+        open={annOpen} onClose={() => setAnnOpen(false)} employee={employee}
+        authorRole="maintenance" allowHighlight={false} fixedRoles={['coach', 'admin']} title="Aviso a coaches"
+      />
 
       <Sheet open={!!resolving} onClose={() => setResolving(null)} title="Resolver parte">
         {resolving && (
@@ -192,6 +241,28 @@ export default function MaintenanceView() {
             />
             <button onClick={confirmResolve} disabled={busy} className="w-full rounded-2xl bg-sage py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
               Marcar como resuelta
+            </button>
+          </>
+        )}
+      </Sheet>
+
+      {/* Nota del técnico: por qué una tarea sigue pendiente o sin terminar */}
+      <Sheet open={!!noting} onClose={() => setNoting(null)} title="Nota de la tarea">
+        {noting && (
+          <>
+            <p className="mb-1 font-display text-xl font-bold">{noting.title}</p>
+            <p className="mb-4 text-sm text-ink/50">{noting.zone}</p>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">¿Por qué no se ha terminado?</label>
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="Ej: Falta una pieza, pedida al proveedor; vuelvo el lunes…"
+              className="mb-5 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze"
+            />
+            <button onClick={saveNote} disabled={busy} className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+              Guardar nota
             </button>
           </>
         )}

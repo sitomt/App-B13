@@ -13,6 +13,7 @@ import { useData } from '../../lib/useData'
 import { useToast } from '../../components/Toast'
 import { Card, SectionTitle, Pill } from '../../components/ui'
 import Sheet from '../../components/Sheet'
+import AdminRecurring from './AdminRecurring'
 import { Plus, Trash, Settings, Sunrise, Moon, Activity, Refresh, Clock, ChevronDown, GripVertical } from '../../components/icons'
 
 const WEEKDAYS = [
@@ -72,6 +73,7 @@ function SortableItem({ t, onEdit, overlay = false }) {
 export default function AdminTemplates() {
   const toast = useToast()
   const tpls = useData(listAllTemplates, [])
+  const [mode, setMode] = useState('diarias') // 'diarias' | 'preventivas'
   const [draft, setDraft] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -163,6 +165,19 @@ export default function AdminTemplates() {
 
   return (
     <div className="space-y-6 pb-24">
+      <div className="flex gap-2">
+        {[
+          { key: 'diarias', label: 'Diarias' },
+          { key: 'preventivas', label: 'Preventivas' },
+        ].map((m) => (
+          <button key={m.key} onClick={() => setMode(m.key)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition active:scale-95 ${mode === m.key ? 'bg-ink text-white' : 'bg-ink/5 text-ink/55'}`}>
+            {m.key === 'preventivas' && <Refresh size={16} />}{m.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'preventivas' ? <AdminRecurring /> : (<>
       {['coach', 'cleaning'].map((role) => (
         <div key={role}>
           <SectionTitle icon={Settings}>{ROLE_LABEL[role]}</SectionTitle>
@@ -306,6 +321,7 @@ export default function AdminTemplates() {
           </div>
         )}
       </Sheet>
+      </>)}
     </div>
   )
 }

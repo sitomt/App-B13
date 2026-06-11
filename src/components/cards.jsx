@@ -152,6 +152,29 @@ export function TaskRow({ item, employee, onChange }) {
 // Aviso de comunicación interna
 export function AnnouncementCard({ a }) {
   const high = a.priority === 'high'
+
+  // Avisos de un coach: más discretos que los de dirección (nota de compañero).
+  if (a.created_by_role && a.created_by_role !== 'admin') {
+    return (
+      <div className="rounded-xl2 border border-ink/[0.07] bg-sand-50 px-3.5 py-2.5">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink/5 text-ink/45">
+            <Megaphone size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-snug text-ink/80">{a.title}</p>
+            {a.body && <p className="mt-0.5 text-xs leading-snug text-ink/55">{a.body}</p>}
+            {a.created_by_name && (
+              <p className="mt-1 flex items-center gap-1 text-[11px] text-ink/40">
+                <User size={11} /> {a.created_by_name}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`rounded-xl2 p-4 shadow-card ${

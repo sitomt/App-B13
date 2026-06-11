@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Wordmark } from './Logo'
 import { useSession } from '../state/session'
 import { greetingMadrid, longDateMadrid } from '../lib/date'
-import { LogOut, Calendar } from './icons'
+import { LogOut, Calendar, Book, Megaphone } from './icons'
+import UtilitiesOverlay from './UtilitiesOverlay'
 
 const ROLE_LABEL = {
   admin: 'Administración',
@@ -12,14 +14,24 @@ const ROLE_LABEL = {
 
 // Cabecera oscura con logo de marca + identidad del usuario simulado.
 // La luz cálida bronce (brand-glow) evoca el logo proyectado sobre la pared del club.
-export function Header({ subtitle, onCalendar }) {
+export function Header({ subtitle, onCalendar, onAnnounce }) {
   const { employee, logout } = useSession()
+  const [utils, setUtils] = useState(false)
   return (
     <header className="relative overflow-hidden bg-ink px-5 pb-5 pt-safe text-white">
       <div className="brand-glow pointer-events-none absolute inset-0" aria-hidden="true" />
       <div className="relative flex items-center justify-between pt-4">
         <Wordmark variant="white" className="h-5 w-auto" />
         <div className="flex items-center gap-2">
+          {onAnnounce && (
+            <button
+              onClick={onAnnounce}
+              aria-label="Aviso a coaches"
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 transition-enter active:scale-95"
+            >
+              <Megaphone size={14} /> Aviso
+            </button>
+          )}
           {onCalendar && (
             <button
               onClick={onCalendar}
@@ -30,14 +42,22 @@ export function Header({ subtitle, onCalendar }) {
             </button>
           )}
           <button
-            onClick={logout}
-            aria-label="Cambiar de usuario"
+            onClick={() => setUtils(true)}
+            aria-label="Utilidades y manuales"
             className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 transition-enter active:scale-95"
           >
-            <LogOut size={14} /> Cambiar
+            <Book size={14} /> Utilidades
+          </button>
+          <button
+            onClick={logout}
+            aria-label="Cambiar de usuario"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition-enter active:scale-95"
+          >
+            <LogOut size={15} />
           </button>
         </div>
       </div>
+      {utils && <UtilitiesOverlay onClose={() => setUtils(false)} />}
       <div className="relative mt-4">
         <p className="text-sm text-white/50">{greetingMadrid()}, {employee.name.split(' ')[0]}</p>
         <h1 className="font-display text-3xl font-extrabold leading-tight">

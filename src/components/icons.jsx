@@ -27,6 +27,7 @@ export const Utensils = (p) => (
 export const Power = (p) => <S {...p}><path d="M12 3v9" /><path d="M5.6 7a8 8 0 1 0 12.8 0" /></S>
 export const LogOut = (p) => <S {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></S>
 export const Plus = (p) => <S {...p}><path d="M12 5v14M5 12h14" /></S>
+export const Chat = (p) => <S {...p}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" /></S>
 export const X = (p) => <S {...p}><path d="M18 6 6 18M6 6l12 12" /></S>
 export const Alert = (p) => (
   <S {...p}><path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></S>
@@ -76,6 +77,13 @@ export const Map = (p) => (
   <S {...p}><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" /><path d="M9 4v14M15 6v14" /></S>
 )
 export const Activity = (p) => <S {...p}><path d="M3 12h4l3 8 4-16 3 8h4" /></S>
+export const Pencil = (p) => (
+  <S {...p}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" /></S>
+)
+export const Book = (p) => (
+  <S {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5Z" /><path d="M19 17H6a2 2 0 0 0-2 2" /></S>
+)
+export const Search = (p) => <S {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></S>
 export const Calendar = (p) => (
   <S {...p}><rect x="3" y="4.5" width="18" height="16" rx="2" /><path d="M3 9h18M8 2.5v4M16 2.5v4" /></S>
 )

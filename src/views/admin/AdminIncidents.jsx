@@ -9,6 +9,7 @@ import { useToast } from '../../components/Toast'
 import { haptic } from '../../lib/haptics'
 import { Card, SectionTitle, Pill, Spinner, EmptyState } from '../../components/ui'
 import IncidenciaTypesEditor from '../../components/IncidenciaTypesEditor'
+import AreasEditor from '../../components/AreasEditor'
 import ReportIncident from '../../components/ReportIncident'
 import { Alert, Wrench, Check, Clock, User, Settings, Trash, Plus, GripVertical } from '../../components/icons'
 import { shortDate, dateTime, daysBetween, relativeTime } from '../../lib/date'
@@ -69,6 +70,7 @@ function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint, dragHandle }
         <div className="mb-1 flex flex-wrap items-center gap-2 pr-8">
           <Pill color={STATUS[inc.status].pill}>{STATUS[inc.status].label}</Pill>
           {inc.priority === 'urgent' && !done && <Pill color="terracotta">URGENTE</Pill>}
+          {inc.area && <Pill color="bronze">{inc.area}</Pill>}
           {inc.category && <span className="text-xs font-semibold text-ink/40">{inc.category}</span>}
         </div>
         <div className="flex gap-3">
@@ -103,9 +105,9 @@ function IncidentCard({ inc, onStart, onResolve, onDelete, isMaint, dragHandle }
             {done && <Step color="bg-sage" label="Resuelta" who={inc.resolved_by_name} when={dateTime(inc.resolved_at)} last />}
             {!done && !inc.started_at && <Step color="bg-ink/20" label="Sin empezar" when={`pendiente · ${relativeTime(inc.created_at)}`} last />}
           </div>
-          {done && inc.resolution_notes && (
-            <div className="mt-2 rounded-xl bg-sage/8 p-2.5 text-sm text-sage">
-              <span className="font-semibold">Resolución:</span> {inc.resolution_notes}
+          {inc.resolution_notes && (
+            <div className={`mt-2 rounded-xl p-2.5 text-sm ${done ? 'bg-sage/8 text-sage' : 'bg-ochre/10 text-[#8a6a1e]'}`}>
+              <span className="font-semibold">{done ? 'Resolución:' : 'Nota del técnico:'}</span> {inc.resolution_notes}
             </div>
           )}
           {!done && (
@@ -156,6 +158,7 @@ export default function AdminIncidents() {
   const [source, setSource] = useState('incidencia')
   const [sf, setSf] = useState('open')
   const [editTags, setEditTags] = useState(false)
+  const [editAreas, setEditAreas] = useState(false)
   const [adding, setAdding] = useState(false)
   const [items, setItems] = useState([])
 
@@ -256,6 +259,9 @@ export default function AdminIncidents() {
         icon={isMaint ? Wrench : Alert}
         right={
           <div className="flex items-center gap-2">
+            <button onClick={() => setEditAreas(true)} className="flex items-center gap-1 rounded-full bg-ink/5 px-3 py-1.5 text-xs font-bold text-ink/60 transition-enter active:scale-95">
+              <Settings size={13} /> Áreas
+            </button>
             {!isMaint && (
               <button onClick={() => setEditTags(true)} className="flex items-center gap-1 rounded-full bg-ink/5 px-3 py-1.5 text-xs font-bold text-ink/60 transition-enter active:scale-95">
                 <Settings size={13} /> Etiquetas
@@ -292,6 +298,7 @@ export default function AdminIncidents() {
       )}
 
       <IncidenciaTypesEditor open={editTags} onClose={() => setEditTags(false)} />
+      <AreasEditor open={editAreas} onClose={() => setEditAreas(false)} />
 
       <ReportIncident
         open={adding}
