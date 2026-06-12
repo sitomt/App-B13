@@ -21,8 +21,14 @@ export function Header({ subtitle, onCalendar, onAnnounce }) {
   const [utils, setUtils] = useState(false)
   const [account, setAccount] = useState(false)
   return (
-    <header className="relative overflow-hidden bg-ink px-5 pb-5 pt-safe text-white">
+    <header
+      className="relative overflow-hidden rounded-b-xl3 px-5 pb-6 pt-safe text-white shadow-pop"
+      style={{ backgroundImage: 'linear-gradient(168deg, #3A352F 0%, #2C2925 52%, #262320 100%)' }}
+    >
       <div className="brand-glow pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="texture-grain pointer-events-none absolute inset-0" aria-hidden="true" />
+      {/* línea de horizonte bronce: el filo de luz bajo la cabecera */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-bronze/45 to-transparent" aria-hidden="true" />
       <div className="relative flex items-center justify-between pt-4">
         <Wordmark variant="white" className="h-5 w-auto" />
         <div className="flex items-center gap-2">
@@ -69,12 +75,16 @@ export function Header({ subtitle, onCalendar, onAnnounce }) {
       </div>
       {utils && <UtilitiesOverlay onClose={() => setUtils(false)} />}
       <AccountSheet open={account} onClose={() => setAccount(false)} employee={employee} />
-      <div className="relative mt-4">
-        <p className="text-sm text-white/50">{greetingMadrid()}, {employee.name.split(' ')[0]}</p>
-        <h1 className="font-display text-3xl font-extrabold leading-tight">
+      <div className="relative mt-5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">
+          {greetingMadrid()}, {employee.name.split(' ')[0]}
+        </p>
+        <h1 className="mt-0.5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight">
           {subtitle || ROLE_LABEL[employee.role]}
         </h1>
-        <p className="mt-0.5 text-sm capitalize text-bronze">{longDateMadrid()}</p>
+        <span className="mt-2 inline-flex items-center rounded-full bg-bronze/15 px-2.5 py-1 text-xs font-semibold capitalize text-bronze-glow ring-1 ring-inset ring-bronze/25">
+          {longDateMadrid()}
+        </span>
       </div>
     </header>
   )
@@ -84,16 +94,16 @@ export function Header({ subtitle, onCalendar, onAnnounce }) {
 // Sin `label` se renderiza como un círculo "+" igual que el de la vista coach.
 export function Fab({ icon: Icon, label, ariaLabel, onClick, tone = 'bronze' }) {
   const tones = {
-    bronze: 'bg-bronze',
-    ink: 'bg-ink',
-    terracotta: 'bg-terracotta',
+    bronze: 'bg-gradient-to-br from-bronze-glow to-bronze-dark shadow-glow',
+    ink: 'bg-gradient-to-br from-ink-soft to-ink shadow-float',
+    terracotta: 'bg-terracotta shadow-float',
   }
   const circular = !label
   return (
     <button
       onClick={onClick}
       aria-label={ariaLabel || label}
-      className={`fixed bottom-5 right-5 z-30 flex items-center justify-center gap-2 rounded-full ${tones[tone]} text-white shadow-float transition-enter active:scale-90 ${
+      className={`fixed bottom-5 right-5 z-30 flex items-center justify-center gap-2 rounded-full ${tones[tone]} text-white transition-enter active:scale-90 ${
         circular ? 'h-16 w-16' : 'px-5 py-4 font-bold'
       }`}
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}

@@ -139,13 +139,13 @@ export default function MaintenanceView() {
         {/* Resumen */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { n: pending.length, label: 'Pendientes', color: 'text-terracotta' },
-            { n: inProgress.length, label: 'En curso', color: 'text-ochre' },
-            { n: done.length, label: 'Resueltas', color: 'text-sage' },
+            { n: pending.length, label: 'Pendientes', color: 'text-terracotta', bg: 'bg-terracotta/[0.07]' },
+            { n: inProgress.length, label: 'En curso', color: 'text-ochre', bg: 'bg-ochre/[0.08]' },
+            { n: done.length, label: 'Resueltas', color: 'text-sage', bg: 'bg-sage/[0.08]' },
           ].map((s) => (
-            <Card key={s.label} className="p-3 text-center">
-              <p className={`font-display text-3xl font-extrabold ${s.color}`}>{s.n}</p>
-              <p className="text-xs text-ink/45">{s.label}</p>
+            <Card key={s.label} className={`p-3.5 text-center ${s.bg}`}>
+              <p className={`tabular font-display text-[34px] font-extrabold leading-none ${s.color}`}>{s.n}</p>
+              <p className="mt-1.5 text-xs font-semibold text-ink/45">{s.label}</p>
             </Card>
           ))}
         </div>
@@ -246,7 +246,7 @@ export default function MaintenanceView() {
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="Qué se ha hecho para arreglarlo…"
-              className="mb-5 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze"
+              className="mb-5 field"
             />
             <button onClick={confirmResolve} disabled={busy} className="w-full rounded-2xl bg-sage py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
               Marcar como resuelta
@@ -268,9 +268,9 @@ export default function MaintenanceView() {
               rows={3}
               autoFocus
               placeholder="Ej: Falta una pieza, pedida al proveedor; vuelvo el lunes…"
-              className="mb-5 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze"
+              className="mb-5 field"
             />
-            <button onClick={saveNote} disabled={busy} className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+            <button onClick={saveNote} disabled={busy} className="btn-primary">
               Guardar nota
             </button>
           </>

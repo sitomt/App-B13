@@ -77,7 +77,7 @@ export default function AnnouncementSheet({
     } catch { toast('No se pudo publicar', 'error') } finally { setBusy(false) }
   }
 
-  const input = 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze'
+  const input = 'field'
 
   return (
     <Sheet open={open} onClose={onClose} title={sheetTitle}>
@@ -128,7 +128,7 @@ export default function AnnouncementSheet({
         </button>
       )}
 
-      <button onClick={submit} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+      <button onClick={submit} disabled={busy} className="flex w-full items-center justify-center gap-2 btn-primary">
         <Megaphone size={20} /> Publicar aviso
       </button>
     </Sheet>

@@ -71,7 +71,7 @@ function EmployeeEditor({ open, onClose, editing, onSaved }) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Ej: Laura Gómez"
-        className="mb-4 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3.5 text-base outline-none focus:border-bronze"
+        className="mb-4 field"
       />
 
       <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Rol</label>
@@ -111,14 +111,14 @@ function EmployeeEditor({ open, onClose, editing, onSaved }) {
         type="date"
         value={birthDate}
         onChange={(e) => setBirthDate(e.target.value)}
-        className="mb-1.5 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3.5 text-base outline-none focus:border-bronze"
+        className="mb-1.5 field"
       />
       <p className="mb-5 px-1 text-xs text-ink/40">El día de su cumpleaños recibirá una felicitación de Baktun 13.</p>
 
       <button
         onClick={save}
         disabled={busy}
-        className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50"
+        className="btn-primary"
       >
         {editing ? 'Guardar cambios' : 'Crear perfil'}
       </button>

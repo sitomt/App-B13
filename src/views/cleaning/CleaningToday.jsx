@@ -52,13 +52,13 @@ export default function CleaningToday() {
         <SkeletonList rows={4} />
       ) : (
         <>
-          <Card className="flex items-center gap-4 p-4">
-            <ProgressRing value={daily.length ? dailyDone / daily.length : 0} size={64} color="#5B7A8C">
-              <span className="tabular font-display text-xl font-extrabold text-ink">{dailyDone}/{daily.length}</span>
+          <Card className="brand-glow flex items-center gap-4 !border-white/10 !bg-ink p-5 text-white">
+            <ProgressRing value={daily.length ? dailyDone / daily.length : 0} size={66} color="#8FB3C7" track="rgba(255,255,255,0.14)">
+              <span className="tabular font-display text-xl font-extrabold text-white">{dailyDone}/{daily.length}</span>
             </ProgressRing>
             <div className="flex-1">
-              <p className="font-display text-xl font-bold text-ink">Ruta de hoy</p>
-              <p className="text-sm text-ink/50">Tareas diarias obligatorias</p>
+              <p className="font-display text-2xl font-extrabold leading-tight">Ruta de hoy</p>
+              <p className="text-sm text-white/55">Tareas diarias obligatorias</p>
             </div>
           </Card>
 

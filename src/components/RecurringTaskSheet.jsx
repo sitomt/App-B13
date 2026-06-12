@@ -108,7 +108,7 @@ export default function RecurringTaskSheet({ open, onClose, employee, target = '
     }
   }
 
-  const input = 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze'
+  const input = 'field'
   const next = nextOccurrence(draft.months, draft.day_of_month, draft.start_on)
 
   return (
@@ -226,7 +226,7 @@ export default function RecurringTaskSheet({ open, onClose, employee, target = '
       </button>
 
       <button onClick={save} disabled={busy}
-        className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+        className="btn-primary">
         {editing ? 'Guardar cambios' : 'Crear tarea preventiva'}
       </button>
     </Sheet>

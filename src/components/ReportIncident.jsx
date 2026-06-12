@@ -100,7 +100,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder={placeholder}
-        className="mb-4 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3.5 text-base outline-none focus:border-bronze"
+        className="mb-4 field"
       />
 
       <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Tipo</label>
@@ -187,7 +187,7 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
       <button
         onClick={submit}
         disabled={busy}
-        className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50"
+        className="btn-primary"
       >
         Enviar incidencia
       </button>

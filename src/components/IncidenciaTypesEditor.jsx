@@ -36,7 +36,7 @@ export default function IncidenciaTypesEditor({ open, onClose }) {
     catch { toast('No se pudo quitar', 'error') }
   }
 
-  const input = 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze'
+  const input = 'field'
 
   return (
     <Sheet open={open} onClose={onClose} title="Etiquetas de incidencia">

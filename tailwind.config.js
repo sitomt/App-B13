@@ -12,6 +12,7 @@ export default {
         },
         sand: {
           DEFAULT: '#F4F1EC', // arena clara — fondo principal claro
+          25: '#FCFBF8',
           50: '#FAF8F4',
           100: '#F4F1EC',
           200: '#E9E3D9',
@@ -21,6 +22,7 @@ export default {
           DEFAULT: '#B98A5E', // acento cálido (logo proyectado sobre pared)
           dark: '#A4774C',
           soft: '#E7D8C5',
+          glow: '#D4A574',    // acento luminoso (highlights premium)
         },
         // Estados, terrosos pero legibles
         sage: '#5E8C61',   // hecho / activo
@@ -34,13 +36,16 @@ export default {
       },
       borderRadius: {
         xl2: '1.25rem',
+        xl3: '1.75rem',
       },
-      // Escala de elevación coherente (skill §4 elevation-consistent)
+      // Escala de elevación coherente (skill §4 elevation-consistent).
+      // Tinte cálido (marrón ink) para que las sombras "pertenezcan" a la paleta.
       boxShadow: {
-        card: '0 1px 2px rgba(44,41,37,0.04), 0 8px 24px -12px rgba(44,41,37,0.18)',
-        pop: '0 4px 16px -6px rgba(44,41,37,0.22)',
-        float: '0 12px 32px -8px rgba(44,41,37,0.35)',
-        sheet: '0 -8px 40px -12px rgba(44,41,37,0.45)',
+        card: '0 1px 2px rgba(44,41,37,0.03), 0 10px 30px -14px rgba(74,58,42,0.16)',
+        pop: '0 4px 18px -6px rgba(74,58,42,0.20)',
+        float: '0 14px 36px -10px rgba(44,41,37,0.32)',
+        sheet: '0 -10px 44px -12px rgba(44,41,37,0.42)',
+        glow: '0 0 0 1px rgba(185,138,94,0.14), 0 10px 32px -10px rgba(185,138,94,0.45)',
       },
       // Tokens de movimiento unificados (skill §7 motion-consistency)
       transitionTimingFunction: {

@@ -70,13 +70,13 @@ export default function FeedbackSheet({ open, onClose, employee, onCreated }) {
         onChange={(e) => setMessage(e.target.value)}
         rows={4}
         placeholder="Escribe aquí…"
-        className="mb-5 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze"
+        className="mb-5 field"
       />
 
       <button
         onClick={submit}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 btn-primary"
       >
         <Chat size={20} /> Enviar feedback
       </button>

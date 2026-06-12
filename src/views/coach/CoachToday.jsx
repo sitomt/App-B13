@@ -89,13 +89,13 @@ export default function CoachToday() {
         <SkeletonList rows={4} />
       ) : (
         <>
-          <Card className="flex items-center gap-4 p-4">
-            <ProgressRing value={dayProgress} size={64}>
-              <span className="tabular font-display text-xl font-extrabold text-ink">{Math.round(dayProgress * 100)}%</span>
+          <Card className="brand-glow flex items-center gap-4 !border-white/10 !bg-ink p-5 text-white">
+            <ProgressRing value={dayProgress} size={66} track="rgba(255,255,255,0.14)">
+              <span className="tabular font-display text-xl font-extrabold text-white">{Math.round(dayProgress * 100)}%</span>
             </ProgressRing>
             <div className="flex-1">
-              <p className="font-display text-xl font-bold text-ink">Tu día</p>
-              <p className="text-sm text-ink/50">{dayDone} de {dayTotal} tareas hechas</p>
+              <p className="font-display text-2xl font-extrabold leading-tight">Tu día</p>
+              <p className="text-sm text-white/55">{dayDone} de {dayTotal} tareas hechas</p>
             </div>
           </Card>
 

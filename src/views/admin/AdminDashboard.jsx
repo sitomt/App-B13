@@ -123,12 +123,12 @@ export default function AdminDashboard() {
     <div className="space-y-5 pb-24">
       <BirthdayNotice />
       {/* En directo */}
-      <div className="flex items-center gap-2 px-1">
+      <div className="card-line inline-flex items-center gap-2 rounded-full bg-white/80 py-1.5 pl-3 pr-3.5 shadow-card">
         <span className="relative flex h-2.5 w-2.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage opacity-60" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sage" />
         </span>
-        <span className="text-sm font-semibold text-ink/55">En directo · actualizado {timeHM(new Date().toISOString())}</span>
+        <span className="text-sm font-semibold text-ink/60">En directo · actualizado {timeHM(new Date().toISOString())}</span>
       </div>
 
       {/* Aviso urgente activo a limpieza */}

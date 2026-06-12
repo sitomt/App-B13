@@ -161,7 +161,7 @@ export default function AdminTemplates() {
   }
 
   const list = tpls.data || []
-  const input = 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-base outline-none focus:border-bronze'
+  const input = 'field'
 
   return (
     <div className="space-y-6 pb-24">
@@ -298,7 +298,7 @@ export default function AdminTemplates() {
               <input value={draft.recurrence_label} onChange={(e) => setDraft({ ...draft, recurrence_label: e.target.value })} placeholder="Ej: cada 30 min" className={input} />
             )}
 
-            <button onClick={save} disabled={busy} className="w-full rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition-enter active:scale-[0.98] disabled:opacity-50">
+            <button onClick={save} disabled={busy} className="btn-primary">
               {editingId ? 'Guardar cambios' : 'Crear tarea'}
             </button>
             {editingId && (

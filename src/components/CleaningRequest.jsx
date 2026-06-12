@@ -48,7 +48,7 @@ export default function CleaningRequest({ open, onClose, employee, onCreated }) 
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Ej: Derrame de agua en sala spinning"
-        className="mb-4 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3.5 text-base outline-none focus:border-bronze"
+        className="mb-4 field"
       />
 
       <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-ink/40">Zona</label>
@@ -84,7 +84,7 @@ export default function CleaningRequest({ open, onClose, employee, onCreated }) 
       <button
         onClick={submit}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-lg font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 btn-primary"
       >
         <Spray size={22} /> Enviar a limpieza
       </button>

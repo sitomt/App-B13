@@ -235,13 +235,13 @@ export default function AdminIncidents() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { n: list.filter((i) => i.status === 'pending').length, label: 'Pendientes', color: 'text-terracotta' },
-          { n: list.filter((i) => i.status === 'in_progress').length, label: 'En curso', color: 'text-ochre' },
-          { n: done.length, label: 'Resueltas', color: 'text-sage' },
+          { n: list.filter((i) => i.status === 'pending').length, label: 'Pendientes', color: 'text-terracotta', bg: 'bg-terracotta/[0.07]' },
+          { n: list.filter((i) => i.status === 'in_progress').length, label: 'En curso', color: 'text-ochre', bg: 'bg-ochre/[0.08]' },
+          { n: done.length, label: 'Resueltas', color: 'text-sage', bg: 'bg-sage/[0.08]' },
         ].map((s) => (
-          <Card key={s.label} className="p-3 text-center">
-            <p className={`font-display text-3xl font-extrabold ${s.color}`}>{s.n}</p>
-            <p className="text-xs text-ink/45">{s.label}</p>
+          <Card key={s.label} className={`p-3.5 text-center ${s.bg}`}>
+            <p className={`tabular font-display text-[34px] font-extrabold leading-none ${s.color}`}>{s.n}</p>
+            <p className="mt-1.5 text-xs font-semibold text-ink/45">{s.label}</p>
           </Card>
         ))}
       </div>

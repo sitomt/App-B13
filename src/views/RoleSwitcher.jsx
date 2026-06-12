@@ -94,7 +94,7 @@ export default function RoleSwitcher() {
   // -------- Paso 3: foto de perfil (primer acceso) --------
   if (photoFor) {
     return (
-      <div className="min-h-dvh bg-ink text-white">
+      <div className="scene-dark min-h-dvh text-white">
         <div className="mx-auto flex max-w-md flex-col items-center px-6 pb-16 pt-safe text-center">
           <div className="pt-12"><Wordmark variant="white" className="h-6 w-auto" /></div>
           <div className="my-10 flex flex-col items-center">
@@ -127,7 +127,7 @@ export default function RoleSwitcher() {
         ? (phase === 'first' ? '4 dígitos que recordarás' : 'Confírmalo para guardarlo')
         : 'Introduce tu PIN'
     return (
-      <div className="min-h-dvh bg-ink text-white">
+      <div className="scene-dark min-h-dvh text-white">
         <div className="mx-auto flex max-w-md flex-col items-center px-6 pb-16 pt-safe">
           <div className="pt-12"><Wordmark variant="white" className="h-6 w-auto" /></div>
           <div className="mb-8 mt-10 flex items-center gap-3">
@@ -151,13 +151,14 @@ export default function RoleSwitcher() {
 
   // -------- Paso 1: elegir perfil --------
   return (
-    <div className="min-h-dvh bg-ink text-white">
+    <div className="scene-dark min-h-dvh text-white">
       <div className="mx-auto max-w-md px-6 pb-16 pt-safe">
         <div className="flex flex-col items-center pt-16 text-center">
-          <Wordmark variant="white" className="h-7 w-auto" />
-          <p className="mt-4 text-sm text-white/45">Operativa interna · selecciona tu perfil</p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-semibold text-white/50">
-            <Key size={12} /> Acceso con PIN personal
+          <Wordmark variant="white" className="h-8 w-auto" />
+          <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.22em] text-white/40">Operativa interna</p>
+          <p className="mt-1 text-sm text-white/55">Selecciona tu perfil</p>
+          <span className="glass mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1.5 text-[11px] font-semibold text-white/55 ring-1 ring-white/10">
+            <Key size={12} className="text-bronze-glow" /> Acceso con PIN personal
           </span>
         </div>
 
@@ -169,16 +170,18 @@ export default function RoleSwitcher() {
             const Icon = meta.icon
             return (
               <div key={role}>
-                <div className="mb-2 flex items-center gap-2 px-1 text-white/55">
-                  <Icon size={16} />
-                  <h2 className="font-display text-lg font-bold">{meta.label}</h2>
+                <div className="mb-2.5 flex items-center gap-2.5 px-1 text-white/60">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bronze/20 text-bronze-glow">
+                    <Icon size={15} />
+                  </span>
+                  <h2 className="font-display text-xl font-bold">{meta.label}</h2>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {list.map((emp) => (
                     <button
                       key={emp.id}
                       onClick={() => pickEmployee(emp)}
-                      className="flex w-full items-center gap-3 rounded-2xl bg-white/[0.06] p-3 text-left transition active:scale-[0.98] hover:bg-white/10"
+                      className="glass flex w-full items-center gap-3 rounded-2xl bg-white/[0.07] p-3 text-left ring-1 ring-white/[0.09] transition active:scale-[0.98] hover:bg-white/10"
                     >
                       <Avatar emp={emp} size={44} />
                       <div className="min-w-0 flex-1">

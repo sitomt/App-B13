@@ -9,7 +9,7 @@ export default function Sheet({ open, onClose, title, children, maxH = '85vh' })
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 animate-fade-in bg-ink/50 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 w-full max-w-md animate-slide-up rounded-t-3xl bg-sand-50 shadow-float sm:rounded-3xl"
+        className="relative z-10 w-full max-w-md animate-slide-up rounded-t-xl3 bg-sand-50 shadow-sheet ring-1 ring-white/60 sm:rounded-xl3"
         style={{ maxHeight: maxH }}
       >
         <div className="flex items-center justify-between px-5 pt-4">

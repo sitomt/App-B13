@@ -31,9 +31,9 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2.5 rounded-full py-2.5 pl-4 text-sm font-semibold text-white shadow-float animate-slide-up ${
+            className={`glass pointer-events-auto flex items-center gap-2.5 rounded-full py-2.5 pl-4 text-sm font-semibold text-white shadow-float ring-1 ring-white/15 animate-slide-up ${
               t.action ? 'pr-2' : 'pr-4'
-            } ${t.type === 'error' ? 'bg-terracotta' : 'bg-ink'}`}
+            } ${t.type === 'error' ? 'bg-terracotta/95' : 'bg-ink/90'}`}
           >
             {t.type === 'error' ? <Alert size={18} /> : <Check size={18} />}
             <span>{t.message}</span>

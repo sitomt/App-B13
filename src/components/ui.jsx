@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useId } from 'react'
 import Sheet from './Sheet'
 import { ChevronDown } from './icons'
 import { haptic } from '../lib/haptics'
 
 export function Card({ className = '', children, ...p }) {
   return (
-    <div className={`rounded-xl2 bg-white shadow-card ${className}`} {...p}>
+    <div className={`card-line rounded-xl2 bg-white shadow-card ${className}`} {...p}>
       {children}
     </div>
   )
@@ -20,7 +20,7 @@ export function Avatar({ emp, size = 40, className = '' }) {
         src={emp.photo_url}
         alt={emp.name || ''}
         loading="lazy"
-        className={`shrink-0 rounded-full object-cover ${className}`}
+        className={`shrink-0 rounded-full object-cover shadow-sm ring-1 ring-white/60 ${className}`}
         style={dim}
       />
     )
@@ -28,7 +28,7 @@ export function Avatar({ emp, size = 40, className = '' }) {
   const initials = (emp?.name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white shadow-sm ring-1 ring-white/60 ${className}`}
       style={{ ...dim, background: emp?.color || '#2C2925', fontSize: size * 0.38 }}
     >
       {initials}
@@ -40,8 +40,8 @@ export function Avatar({ emp, size = 40, className = '' }) {
 // Reserva el espacio para evitar saltos de layout (CLS).
 export function Skeleton({ className = '' }) {
   return (
-    <div className={`relative overflow-hidden rounded-lg bg-ink/[0.06] ${className}`}>
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+    <div className={`relative overflow-hidden rounded-lg bg-sand-200/70 ${className}`}>
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
     </div>
   )
 }
@@ -122,7 +122,7 @@ export function Pill({ color = 'ink', children, className = '' }) {
     white: 'bg-white/15 text-white',
   }
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[color]} ${className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-xs font-bold ${map[color]} ${className}`}>
       {children}
     </span>
   )
@@ -131,6 +131,7 @@ export function Pill({ color = 'ink', children, className = '' }) {
 // Anillo de progreso (para % de agenda). Al llegar al 100% vira a sage y
 // emite un destello de celebración (skill §7 motion-meaning; gamificación positiva).
 export function ProgressRing({ value, size = 56, stroke = 6, color = '#B98A5E', track = '#E9E3D9', children }) {
+  const gid = useId()
   const v = Math.min(1, Math.max(0, value))
   const complete = v >= 1
   const r = (size - stroke) / 2
@@ -143,9 +144,16 @@ export function ProgressRing({ value, size = 56, stroke = 6, color = '#B98A5E', 
         <span className="absolute inset-0 animate-flash rounded-full bg-sage/40" aria-hidden="true" />
       )}
       <svg width={size} height={size} className="-rotate-90">
+        {/* Gradiente del trazo: del color pleno a una versión más luminosa (profundidad) */}
+        <defs>
+          <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={strokeColor} />
+            <stop offset="100%" stopColor={strokeColor} stopOpacity="0.55" />
+          </linearGradient>
+        </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={strokeColor} strokeWidth={stroke}
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gid})`} strokeWidth={stroke}
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset .5s ease, stroke .4s ease' }}
         />
@@ -157,10 +165,14 @@ export function ProgressRing({ value, size = 56, stroke = 6, color = '#B98A5E', 
 
 export function SectionTitle({ icon: Icon, children, right }) {
   return (
-    <div className="mb-2 flex items-center justify-between px-1">
-      <div className="flex items-center gap-2 text-ink/70">
-        {Icon && <Icon size={18} />}
-        <h2 className="font-display text-xl font-bold tracking-tight">{children}</h2>
+    <div className="mb-2.5 flex items-center justify-between px-1">
+      <div className="flex items-center gap-2.5 text-ink/75">
+        {Icon && (
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bronze/12 text-bronze-dark">
+            <Icon size={15} />
+          </span>
+        )}
+        <h2 className="font-display text-[22px] font-extrabold tracking-tight">{children}</h2>
       </div>
       {right}
     </div>
@@ -192,14 +204,18 @@ export function CollapsibleSection({ icon: Icon, title, right, persistKey, defau
   return (
     <div>
       {/* `right` va FUERA del botón de plegado para que pueda ser interactivo (p.ej. "Añadir"). */}
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-2.5 flex items-center justify-between px-1">
         <button
           onClick={toggle}
           aria-expanded={open}
-          className="flex flex-1 items-center gap-2 text-ink/70 active:opacity-70"
+          className="flex flex-1 items-center gap-2.5 text-ink/75 active:opacity-70"
         >
-          {Icon && <Icon size={18} />}
-          <span className="font-display text-xl font-bold tracking-tight">{title}</span>
+          {Icon && (
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bronze/12 text-bronze-dark">
+              <Icon size={15} />
+            </span>
+          )}
+          <span className="font-display text-[22px] font-extrabold tracking-tight">{title}</span>
           <ChevronDown size={18} className={`text-ink/30 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         {right}
@@ -211,8 +227,12 @@ export function CollapsibleSection({ icon: Icon, title, right, persistKey, defau
 
 export function EmptyState({ icon: Icon, title, subtitle }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl2 border border-dashed border-ink/15 py-8 text-center text-ink/40">
-      {Icon && <Icon size={26} />}
+    <div className="flex flex-col items-center gap-2.5 rounded-xl2 border border-dashed border-ink/15 py-9 text-center text-ink/40">
+      {Icon && (
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-bronze/10 text-bronze-dark shadow-glow">
+          <Icon size={24} />
+        </span>
+      )}
       <p className="text-sm font-semibold text-ink/55">{title}</p>
       {subtitle && <p className="px-8 text-xs">{subtitle}</p>}
     </div>
