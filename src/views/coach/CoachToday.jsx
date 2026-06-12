@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Fichaje from '../../components/Fichaje'
 import { TaskRow, AnnouncementCard } from '../../components/cards'
-import { Card, SectionTitle, ProgressRing, SkeletonList, EmptyState } from '../../components/ui'
+import { Card, CollapsibleSection, Pill, ProgressRing, SkeletonList, EmptyState } from '../../components/ui'
 import { listTemplates, todayCompletions, activeAnnouncements, completeTask } from '../../lib/api'
 import { useData } from '../../lib/useData'
 import { buildAgenda } from '../../lib/agenda'
@@ -78,10 +78,11 @@ export default function CoachToday() {
       <Fichaje employee={employee} />
 
       {ann.data && ann.data.length > 0 && (
-        <div className="space-y-2">
-          <SectionTitle icon={Megaphone}>Avisos de hoy</SectionTitle>
-          {ann.data.map((a) => <AnnouncementCard key={a.id} a={a} />)}
-        </div>
+        <CollapsibleSection icon={Megaphone} title="Avisos de hoy" right={<Pill color="bronze">{ann.data.length}</Pill>} persistKey="b13.coach.avisos">
+          <div className="space-y-2">
+            {ann.data.map((a) => <AnnouncementCard key={a.id} a={a} />)}
+          </div>
+        </CollapsibleSection>
       )}
 
       {loading ? (
@@ -121,8 +122,7 @@ export default function CoachToday() {
           )}
 
           {sections.agenda.length > 0 && (
-            <div>
-              <SectionTitle icon={Activity}>Tareas de hoy</SectionTitle>
+            <CollapsibleSection icon={Activity} title="Tareas de hoy" persistKey="b13.coach.agenda">
               <Card className="divide-y divide-ink/[0.06]">
                 {sections.agenda.map((i, idx) => (
                   <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
@@ -130,7 +130,7 @@ export default function CoachToday() {
                   </div>
                 ))}
               </Card>
-            </div>
+            </CollapsibleSection>
           )}
 
           {sections.cierre.length > 0 && (

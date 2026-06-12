@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Header, Screen } from '../components/AppShell'
-import { Card, SectionTitle, Pill, Skeleton, EmptyState } from '../components/ui'
+import { Card, CollapsibleSection, Pill, Skeleton, EmptyState } from '../components/ui'
 import Sheet from '../components/Sheet'
 import SpeedDial from '../components/SpeedDial'
 import ReportIncident from '../components/ReportIncident'
@@ -184,8 +184,7 @@ export default function MaintenanceView() {
         ) : (
           <>
             {pending.length > 0 && (
-              <div>
-                <SectionTitle icon={Alert}>Pendientes</SectionTitle>
+              <CollapsibleSection icon={Alert} title="Pendientes" right={<Pill color="terracotta">{pending.length}</Pill>} persistKey="b13.mant.pending">
                 <div className="space-y-3">
                   {pending.map((i, idx) => (
                     <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
@@ -193,11 +192,10 @@ export default function MaintenanceView() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </CollapsibleSection>
             )}
             {inProgress.length > 0 && (
-              <div>
-                <SectionTitle icon={Clock}>En curso</SectionTitle>
+              <CollapsibleSection icon={Clock} title="En curso" right={<Pill color="ochre">{inProgress.length}</Pill>} persistKey="b13.mant.progress">
                 <div className="space-y-3">
                   {inProgress.map((i, idx) => (
                     <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
@@ -205,15 +203,14 @@ export default function MaintenanceView() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </CollapsibleSection>
             )}
             {done.length > 0 && (
-              <div>
-                <SectionTitle icon={Check}>Resueltas</SectionTitle>
+              <CollapsibleSection icon={Check} title="Resueltas" right={<Pill color="sage">{done.length}</Pill>} persistKey="b13.mant.done" defaultOpen={false}>
                 <div className="space-y-3">
                   {done.map((i) => <IncidentCard key={i.id} inc={i} onStart={start} onResolve={openResolve} onNote={openNote} />)}
                 </div>
-              </div>
+              </CollapsibleSection>
             )}
             {!list.length && <EmptyState icon={Wrench} title="Todo en orden" subtitle="No hay incidencias reportadas." />}
           </>

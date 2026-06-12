@@ -78,6 +78,12 @@ export default {
         'shimmer': {
           '100%': { transform: 'translateX(100%)' },
         },
+        // sacudida al fallar (PIN incorrecto)
+        'shake': {
+          '0%,100%': { transform: 'translateX(0)' },
+          '20%,60%': { transform: 'translateX(-8px)' },
+          '40%,80%': { transform: 'translateX(8px)' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.28s cubic-bezier(0.22,1,0.36,1)',
@@ -86,6 +92,7 @@ export default {
         'rise-in': 'rise-in 0.32s cubic-bezier(0.22,1,0.36,1) both',
         'flash': 'flash 0.6s ease-out forwards',
         'shimmer': 'shimmer 1.4s infinite',
+        'shake': 'shake 0.4s ease-in-out',
       },
     },
   },

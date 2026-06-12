@@ -6,7 +6,7 @@ import { useData } from '../../lib/useData'
 import { buildAgenda } from '../../lib/agenda'
 import { useState } from 'react'
 import { todayMadrid, timeHM, relativeTime, appliesToday } from '../../lib/date'
-import { Card, SectionTitle, Pill, ProgressRing, Spinner } from '../../components/ui'
+import { Card, CollapsibleSection, Pill, ProgressRing, Spinner, Avatar } from '../../components/ui'
 import { AnnouncementCard } from '../../components/cards'
 import { BirthdayNotice } from '../../components/Birthday'
 import { User, Activity, Alert, Megaphone, Spray, Coffee, Utensils, Check, Refresh, ChevronDown, Clock } from '../../components/icons'
@@ -16,16 +16,6 @@ const STATUS_META = {
   break: { label: 'Pausa', color: 'bg-ochre', text: 'text-ochre', icon: Coffee },
   meal: { label: 'Comida', color: 'bg-stone', text: 'text-stone', icon: Utensils },
   out: { label: 'Fuera', color: 'bg-ink/20', text: 'text-ink/40', icon: User },
-}
-
-function Avatar({ emp, size = 40 }) {
-  const initials = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-  return (
-    <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white"
-      style={{ background: emp.color, width: size, height: size, fontSize: size * 0.38 }}>
-      {initials}
-    </span>
-  )
 }
 
 // Fila desplegable de una tarea recurrente: nº de veces hoy + quién y cuándo.
@@ -127,8 +117,6 @@ export default function AdminDashboard() {
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   const today = todayMadrid()
   const activeAnn = (ann.data || []).filter((a) => a.active && a.starts_on <= today && a.ends_on >= today)
-  // Avisos entrantes dirigidos a dirección (los lanzan limpieza/mantenimiento).
-  const incomingTeam = activeAnn.filter((a) => (a.target_roles || []).includes('admin'))
   const urgentClean = (adhoc.data || []).filter((t) => t.status === 'pending' && t.priority === 'urgent')
 
   return (
@@ -156,20 +144,19 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* Avisos entrantes del equipo (limpieza / mantenimiento → dirección) */}
-      {incomingTeam.length > 0 && (
-        <div>
-          <SectionTitle icon={Megaphone} right={<Pill color="bronze">{incomingTeam.length}</Pill>}>Avisos del equipo</SectionTitle>
+      {/* Avisos activos: TODO lo que está activo en el gym ahora (dirección + equipo).
+          Los de dirección salen destacados; los del equipo, discretos con su autor. */}
+      {activeAnn.length > 0 && (
+        <CollapsibleSection icon={Megaphone} title="Avisos activos" right={<Pill color="bronze">{activeAnn.length}</Pill>} persistKey="b13.admin.avisos">
           <div className="space-y-2">
-            {incomingTeam.map((a) => <AnnouncementCard key={a.id} a={a} />)}
+            {activeAnn.map((a) => <AnnouncementCard key={a.id} a={a} />)}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Quién está — solo quien está fichado (en turno o en pausa/comida).
           Se actualiza solo: 'entries' refresca cada 15s al fichar cualquiera. */}
-      <div>
-        <SectionTitle icon={User} right={<Pill color={present.length ? 'sage' : 'ink'}>{present.length}</Pill>}>Equipo ahora</SectionTitle>
+      <CollapsibleSection icon={User} title="Equipo ahora" right={<Pill color={present.length ? 'sage' : 'ink'}>{present.length}</Pill>} persistKey="b13.admin.equipo">
         {present.length === 0 ? (
           <Card className="flex items-center gap-2 p-4 text-ink/45">
             <User size={18} /> <span className="text-sm font-semibold">Nadie fichado ahora mismo</span>
@@ -199,11 +186,10 @@ export default function AdminDashboard() {
             })}
           </Card>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Progreso operativo */}
-      <div>
-        <SectionTitle icon={Activity}>Progreso de hoy</SectionTitle>
+      <CollapsibleSection icon={Activity} title="Progreso de hoy" persistKey="b13.admin.progreso">
         <div className="grid grid-cols-2 gap-3">
           <Card className="flex flex-col items-center gap-2 p-4">
             <ProgressRing value={coachProg.dayProgress} size={72}>
@@ -220,21 +206,19 @@ export default function AdminDashboard() {
             <p className="text-xs text-ink/40">tareas diarias</p>
           </Card>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Rondas y repasos recurrentes de hoy (aseos, etc.) */}
       {recurringRows.length > 0 && (
-        <div>
-          <SectionTitle icon={Refresh}>Rondas y repasos de hoy</SectionTitle>
+        <CollapsibleSection icon={Refresh} title="Rondas y repasos de hoy" persistKey="b13.admin.rondas">
           <Card className="divide-y divide-ink/[0.06]">
             {recurringRows.map((row) => <RecurringRow key={row.t.id} row={row} />)}
           </Card>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Incidencias y mantenimiento abiertos */}
-      <div>
-        <SectionTitle icon={Alert} right={<Pill color="ink">{openAll.length}</Pill>}>Incidencias y mantenimiento</SectionTitle>
+      <CollapsibleSection icon={Alert} title="Incidencias y mantenimiento" right={<Pill color="ink">{openAll.length}</Pill>} persistKey="b13.admin.incidencias">
         {openAll.length === 0 ? (
           <Card className="flex items-center gap-2 p-4 text-sage"><Check size={18} /> <span className="text-sm font-semibold">Nada pendiente</span></Card>
         ) : (
@@ -256,29 +240,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Avisos activos */}
-      <div>
-        <SectionTitle icon={Megaphone} right={<Pill color="bronze">{activeAnn.length}</Pill>}>Avisos activos</SectionTitle>
-        {activeAnn.length === 0 ? (
-          <Card className="p-4 text-sm text-ink/45">No hay avisos activos.</Card>
-        ) : (
-          <div className="space-y-2">
-            {activeAnn.map((a) => (
-              <Card key={a.id} className="p-3">
-                <div className="flex items-center gap-2">
-                  {a.priority === 'high' && <Pill color="bronze">Destacado</Pill>}
-                  <p className="font-semibold text-ink">{a.title}</p>
-                </div>
-                <p className="mt-0.5 text-xs text-ink/40">
-                  {a.target_roles.join(', ')} · hasta {a.ends_on}
-                </p>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }

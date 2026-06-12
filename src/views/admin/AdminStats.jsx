@@ -3,17 +3,12 @@ import {
   listEmployees, listAllTemplates, rangeCompletions, rangeTimeEntries, listIncidencias, listMaintenance,
 } from '../../lib/api'
 import { useData } from '../../lib/useData'
-import { Card, SectionTitle, ProgressRing, Spinner, Pill } from '../../components/ui'
+import { Card, CollapsibleSection, ProgressRing, Spinner, Pill, Avatar } from '../../components/ui'
 import { Activity, Refresh, Alert, Clock, Check, User } from '../../components/icons'
 import { weekBounds, weekdayOf, isTodayStr, dowLabel, todayMadrid } from '../../lib/date'
 import { workedMinutesByEmployee, fmtMinutes } from '../../lib/hours'
 
 const applies = (weekdays, dow) => !weekdays || weekdays.length === 0 || weekdays.includes(dow)
-
-function Avatar({ emp, size = 30 }) {
-  const ini = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-  return <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white" style={{ background: emp.color, width: size, height: size, fontSize: size * 0.38 }}>{ini}</span>
-}
 
 export default function AdminStats() {
   const week = useMemo(() => weekBounds(0), [])
@@ -113,8 +108,7 @@ export default function AdminStats() {
       </div>
 
       {/* Cumplimiento por día */}
-      <div>
-        <SectionTitle icon={Activity}>Cumplimiento por día</SectionTitle>
+      <CollapsibleSection icon={Activity} title="Cumplimiento por día" persistKey="b13.adminstats.perday">
         <Card className="p-4">
           <div className="flex items-end justify-between gap-2" style={{ height: maxBar + 24 }}>
             {data.perDay.map((d) => (
@@ -131,11 +125,10 @@ export default function AdminStats() {
             ))}
           </div>
         </Card>
-      </div>
+      </CollapsibleSection>
 
       {/* Pendiente hoy */}
-      <div>
-        <SectionTitle icon={Alert} right={<Pill color={data.pendingToday.length ? 'ochre' : 'sage'}>{data.pendingToday.length}</Pill>}>¿Queda algo por hacer hoy?</SectionTitle>
+      <CollapsibleSection icon={Alert} title="¿Queda algo por hacer hoy?" right={<Pill color={data.pendingToday.length ? 'ochre' : 'sage'}>{data.pendingToday.length}</Pill>} persistKey="b13.adminstats.pending">
         {data.pendingToday.length === 0 ? (
           <Card className="flex items-center gap-2 p-4 text-sage"><Check size={18} /><span className="text-sm font-semibold">Todo hecho por hoy 🎉</span></Card>
         ) : (
@@ -152,22 +145,20 @@ export default function AdminStats() {
             ))}
           </Card>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Incidencias de la semana */}
-      <div>
-        <SectionTitle icon={Alert}>Incidencias</SectionTitle>
+      <CollapsibleSection icon={Alert} title="Incidencias" persistKey="b13.adminstats.inc">
         <div className="grid grid-cols-3 gap-3">
           <Card className="p-3 text-center"><p className="font-display text-2xl font-extrabold text-terracotta">{data.incCreated}</p><p className="text-xs text-ink/45">nuevas</p></Card>
           <Card className="p-3 text-center"><p className="font-display text-2xl font-extrabold text-sage">{data.incResolved}</p><p className="text-xs text-ink/45">resueltas</p></Card>
           <Card className="p-3 text-center"><p className="font-display text-2xl font-extrabold text-ochre">{data.incOpen}</p><p className="text-xs text-ink/45">abiertas</p></Card>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Ranking de actividad */}
       {data.ranking.length > 0 && (
-        <div>
-          <SectionTitle icon={User}>Actividad por persona</SectionTitle>
+        <CollapsibleSection icon={User} title="Actividad por persona" persistKey="b13.adminstats.ranking">
           <Card className="divide-y divide-ink/[0.06]">
             {data.ranking.map((r, i) => {
               const e = (emp.data || []).find((x) => x.name === r.name)
@@ -181,7 +172,7 @@ export default function AdminStats() {
               )
             })}
           </Card>
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   )

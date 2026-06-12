@@ -1,6 +1,6 @@
 import { TaskRow, AnnouncementCard, AdHocCard } from '../../components/cards'
 import Fichaje from '../../components/Fichaje'
-import { Card, SectionTitle, ProgressRing, SkeletonList, EmptyState } from '../../components/ui'
+import { Card, CollapsibleSection, Pill, ProgressRing, SkeletonList, EmptyState } from '../../components/ui'
 import { listTemplates, todayCompletions, listAdHoc, activeAnnouncements } from '../../lib/api'
 import { useData } from '../../lib/useData'
 import { buildAgenda } from '../../lib/agenda'
@@ -41,10 +41,11 @@ export default function CleaningToday() {
       <Fichaje employee={employee} />
 
       {ann.data && ann.data.length > 0 && (
-        <div className="space-y-2">
-          <SectionTitle icon={Megaphone}>Avisos</SectionTitle>
-          {ann.data.map((a) => <AnnouncementCard key={a.id} a={a} />)}
-        </div>
+        <CollapsibleSection icon={Megaphone} title="Avisos" right={<Pill color="bronze">{ann.data.length}</Pill>} persistKey="b13.clean.avisos">
+          <div className="space-y-2">
+            {ann.data.map((a) => <AnnouncementCard key={a.id} a={a} />)}
+          </div>
+        </CollapsibleSection>
       )}
 
       {tpl.loading ? (
@@ -62,8 +63,7 @@ export default function CleaningToday() {
           </Card>
 
           {daily.length > 0 && (
-            <div>
-              <SectionTitle icon={Map}>Ruta diaria</SectionTitle>
+            <CollapsibleSection icon={Map} title="Ruta diaria" right={<Pill color="stone">{dailyDone}/{daily.length}</Pill>} persistKey="b13.clean.diaria">
               <Card className="divide-y divide-ink/[0.06]">
                 {daily.map((i, idx) => (
                   <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
@@ -71,12 +71,11 @@ export default function CleaningToday() {
                   </div>
                 ))}
               </Card>
-            </div>
+            </CollapsibleSection>
           )}
 
           {weekly.length > 0 && (
-            <div>
-              <SectionTitle icon={Spray}>Hoy además toca</SectionTitle>
+            <CollapsibleSection icon={Spray} title="Hoy además toca" right={<Pill color="stone">{weekly.length}</Pill>} persistKey="b13.clean.semanal">
               <Card className="divide-y divide-ink/[0.06]">
                 {weekly.map((i, idx) => (
                   <div key={i.id} className="animate-rise-in" style={{ animationDelay: `${idx * 35}ms` }}>
@@ -84,14 +83,15 @@ export default function CleaningToday() {
                   </div>
                 ))}
               </Card>
-            </div>
+            </CollapsibleSection>
           )}
 
           {otherAdhoc.length > 0 && (
-            <div className="space-y-2">
-              <SectionTitle icon={Activity}>Tareas puntuales</SectionTitle>
-              {otherAdhoc.map((t) => <AdHocCard key={t.id} task={t} employee={employee} onChange={reload} />)}
-            </div>
+            <CollapsibleSection icon={Activity} title="Tareas puntuales" right={<Pill color="stone">{otherAdhoc.length}</Pill>} persistKey="b13.clean.puntuales">
+              <div className="space-y-2">
+                {otherAdhoc.map((t) => <AdHocCard key={t.id} task={t} employee={employee} onChange={reload} />)}
+              </div>
+            </CollapsibleSection>
           )}
 
           {!daily.length && !weekly.length && (

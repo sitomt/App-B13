@@ -4,6 +4,8 @@ import { useSession } from '../state/session'
 import { greetingMadrid, longDateMadrid } from '../lib/date'
 import { LogOut, Calendar, Book, Megaphone } from './icons'
 import UtilitiesOverlay from './UtilitiesOverlay'
+import AccountSheet from './AccountSheet'
+import { Avatar } from './ui'
 
 const ROLE_LABEL = {
   admin: 'Administración',
@@ -17,6 +19,7 @@ const ROLE_LABEL = {
 export function Header({ subtitle, onCalendar, onAnnounce }) {
   const { employee, logout } = useSession()
   const [utils, setUtils] = useState(false)
+  const [account, setAccount] = useState(false)
   return (
     <header className="relative overflow-hidden bg-ink px-5 pb-5 pt-safe text-white">
       <div className="brand-glow pointer-events-none absolute inset-0" aria-hidden="true" />
@@ -49,6 +52,13 @@ export function Header({ subtitle, onCalendar, onAnnounce }) {
             <Book size={14} /> Utilidades
           </button>
           <button
+            onClick={() => setAccount(true)}
+            aria-label="Mi cuenta y ajustes"
+            className="rounded-full ring-2 ring-white/15 transition-enter active:scale-95"
+          >
+            <Avatar emp={employee} size={32} />
+          </button>
+          <button
             onClick={logout}
             aria-label="Cambiar de usuario"
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition-enter active:scale-95"
@@ -58,6 +68,7 @@ export function Header({ subtitle, onCalendar, onAnnounce }) {
         </div>
       </div>
       {utils && <UtilitiesOverlay onClose={() => setUtils(false)} />}
+      <AccountSheet open={account} onClose={() => setAccount(false)} employee={employee} />
       <div className="relative mt-4">
         <p className="text-sm text-white/50">{greetingMadrid()}, {employee.name.split(' ')[0]}</p>
         <h1 className="font-display text-3xl font-extrabold leading-tight">

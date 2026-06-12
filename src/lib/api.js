@@ -7,10 +7,13 @@ import { todayMadrid } from './date'
 // =====================================================================
 
 // ---------- EMPLEADOS ----------
+// Columnas seguras: nunca se selecciona `pin` (el PIN solo se valida en el servidor vía RPC).
+const EMP_COLS = 'id, name, role, color, active, birth_date, photo_url'
+
 export async function listEmployees() {
   const { data, error } = await supabase
     .from('employees')
-    .select('*')
+    .select(EMP_COLS)
     .eq('active', true)
     .order('role')
     .order('name')
@@ -22,10 +25,46 @@ export async function listEmployees() {
 export async function listAllEmployees() {
   const { data, error } = await supabase
     .from('employees')
-    .select('*')
+    .select(EMP_COLS)
     .order('active', { ascending: false })
     .order('role')
     .order('name')
+  if (error) throw error
+  return data
+}
+
+// ---------- LOGIN / PIN (gate ligero, validado en servidor vía RPC) ----------
+// Lista para la pantalla de login: id, name, role, color, has_pin (sin exponer el PIN).
+export async function loginList() {
+  const { data, error } = await supabase.rpc('employees_login_list')
+  if (error) throw error
+  return data
+}
+
+// Primer alta del PIN (solo si aún no tiene). Devuelve true si lo crea.
+export async function setPin(employeeId, pin) {
+  const { data, error } = await supabase.rpc('set_employee_pin', { p_id: employeeId, p_pin: pin })
+  if (error) throw error
+  return data
+}
+
+// Comprueba el PIN al entrar. Devuelve true si coincide.
+export async function verifyPin(employeeId, pin) {
+  const { data, error } = await supabase.rpc('verify_employee_pin', { p_id: employeeId, p_pin: pin })
+  if (error) throw error
+  return data
+}
+
+// Cambio del PIN por el propio empleado (exige el PIN actual). Devuelve true si lo cambia.
+export async function changePin(employeeId, oldPin, newPin) {
+  const { data, error } = await supabase.rpc('change_employee_pin', { p_id: employeeId, p_old: oldPin, p_new: newPin })
+  if (error) throw error
+  return data
+}
+
+// Reseteo por el admin: borra el PIN (el empleado lo recrea al entrar).
+export async function clearPin(employeeId) {
+  const { data, error } = await supabase.rpc('clear_employee_pin', { p_id: employeeId })
   if (error) throw error
   return data
 }
@@ -517,6 +556,33 @@ export async function listAllAnnouncements() {
 export async function createAnnouncement(a) {
   const { error } = await supabase.from('announcements').insert(a)
   if (error) throw error
+  // Notificación push a los destinatarios (no bloquea ni rompe el alta si falla).
+  notifyAnnouncement(a)
+}
+
+// ---------- WEB PUSH (notificaciones tipo banner) ----------
+// Guarda la suscripción del dispositivo para este empleado.
+export async function savePushSubscription(employeeId, { endpoint, p256dh, auth }) {
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    { employee_id: employeeId, endpoint, p256dh, auth, user_agent: navigator.userAgent },
+    { onConflict: 'endpoint' },
+  )
+  if (error) throw error
+}
+
+// Llama a la Edge Function que envía el push a los destinatarios del aviso.
+async function notifyAnnouncement(a) {
+  try {
+    await supabase.functions.invoke('send-push', {
+      body: {
+        title: a.title,
+        body: a.body || '',
+        target_roles: a.target_roles || [],
+        tag: 'aviso',
+        url: '/',
+      },
+    })
+  } catch { /* el push es best-effort: el aviso ya está guardado */ }
 }
 
 export async function updateAnnouncement(id, patch) {

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import Sheet from '../../components/Sheet'
-import { Card, SectionTitle, Pill, Spinner, ConfirmSheet, EmptyState } from '../../components/ui'
-import { listAllEmployees, createEmployee, updateEmployee, deactivateEmployee } from '../../lib/api'
+import { Card, SectionTitle, CollapsibleSection, Pill, Spinner, ConfirmSheet, EmptyState, Avatar } from '../../components/ui'
+import { listAllEmployees, createEmployee, updateEmployee, deactivateEmployee, clearPin } from '../../lib/api'
 import { useData } from '../../lib/useData'
 import { useSession } from '../../state/session'
 import { useToast } from '../../components/Toast'
 import { isBirthdayToday } from '../../lib/date'
-import { User, Plus, Trash, Power, Settings, Dumbbell, Spray, Wrench } from '../../components/icons'
+import { User, Plus, Trash, Power, Settings, Dumbbell, Spray, Wrench, Key } from '../../components/icons'
 
 const ROLE_META = {
   admin: { label: 'Administración', short: 'Admin', icon: Settings },
@@ -19,16 +19,6 @@ const ROLE_ORDER = ['admin', 'coach', 'cleaning', 'maintenance']
 // Paleta de marca para el avatar (mismo color que usa RoleSwitcher / fichajes).
 const COLORS = ['#B98A5E', '#A4774C', '#5E8C61', '#B4503C', '#C99A3E', '#5B7A8C', '#2C2925']
 
-function Avatar({ emp, size = 44 }) {
-  const initials = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-  return (
-    <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white"
-      style={{ background: emp.color, width: size, height: size, fontSize: size * 0.36 }}>
-      {initials}
-    </span>
-  )
-}
-
 // Hoja de alta/edición de un perfil.
 function EmployeeEditor({ open, onClose, editing, onSaved }) {
   const toast = useToast()
@@ -37,6 +27,7 @@ function EmployeeEditor({ open, onClose, editing, onSaved }) {
   const [color, setColor] = useState(COLORS[0])
   const [birthDate, setBirthDate] = useState('')
   const [busy, setBusy] = useState(false)
+  const [confirmPin, setConfirmPin] = useState(false)
 
   // Sincroniza el formulario al abrir (alta vacía o edición prerrellenada).
   const [lastOpen, setLastOpen] = useState(false)
@@ -45,9 +36,18 @@ function EmployeeEditor({ open, onClose, editing, onSaved }) {
     setRole(editing?.role || 'coach')
     setColor(editing?.color || COLORS[0])
     setBirthDate(editing?.birth_date || '')
+    setConfirmPin(false)
     setLastOpen(true)
   } else if (!open && lastOpen) {
     setLastOpen(false)
+  }
+
+  async function resetPin() {
+    try {
+      await clearPin(editing.id)
+      setConfirmPin(false)
+      toast('PIN reseteado · lo creará al entrar')
+    } catch { toast('No se pudo resetear el PIN', 'error') }
   }
 
   async function save() {
@@ -122,6 +122,20 @@ function EmployeeEditor({ open, onClose, editing, onSaved }) {
       >
         {editing ? 'Guardar cambios' : 'Crear perfil'}
       </button>
+
+      {editing && (
+        confirmPin ? (
+          <div className="mt-3 flex items-center gap-2 rounded-2xl bg-terracotta/8 p-2">
+            <span className="flex-1 px-2 text-sm font-semibold text-terracotta">¿Resetear su PIN?</span>
+            <button onClick={() => setConfirmPin(false)} className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-ink/60 transition-enter active:scale-95">Cancelar</button>
+            <button onClick={resetPin} className="rounded-xl bg-terracotta px-3 py-2 text-sm font-extrabold text-white transition-enter active:scale-95">Resetear</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmPin(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-ink/55 transition-enter active:scale-95">
+            <Key size={16} /> Resetear PIN
+          </button>
+        )
+      )}
     </Sheet>
   )
 }
@@ -182,8 +196,7 @@ export default function AdminTeam() {
           if (!list.length) return null
           const Icon = ROLE_META[r].icon
           return (
-            <div key={r}>
-              <SectionTitle icon={Icon} right={<Pill color="ink">{list.length}</Pill>}>{ROLE_META[r].label}</SectionTitle>
+            <CollapsibleSection key={r} icon={Icon} title={ROLE_META[r].label} right={<Pill color="ink">{list.length}</Pill>} persistKey={`b13.team.${r}`}>
               <Card className="divide-y divide-ink/[0.06]">
                 {list.map((e) => (
                   <div key={e.id} className="flex items-center gap-3 p-3">
@@ -206,14 +219,13 @@ export default function AdminTeam() {
                   </div>
                 ))}
               </Card>
-            </div>
+            </CollapsibleSection>
           )
         })
       )}
 
       {inactive.length > 0 && (
-        <div>
-          <SectionTitle icon={Power}>Desactivados</SectionTitle>
+        <CollapsibleSection icon={Power} title="Desactivados" right={<Pill color="ink">{inactive.length}</Pill>} persistKey="b13.team.inactivos" defaultOpen={false}>
           <Card className="divide-y divide-ink/[0.06]">
             {inactive.map((e) => (
               <div key={e.id} className="flex items-center gap-3 p-3 opacity-70">
@@ -231,7 +243,7 @@ export default function AdminTeam() {
               </div>
             ))}
           </Card>
-        </div>
+        </CollapsibleSection>
       )}
 
       <EmployeeEditor

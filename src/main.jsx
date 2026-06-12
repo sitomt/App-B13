@@ -14,3 +14,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </SessionProvider>
   </React.StrictMode>,
 )
+
+// Service worker para Web Push (notificaciones tipo banner en el móvil).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* sin SW, la app sigue funcionando */ })
+  })
+}

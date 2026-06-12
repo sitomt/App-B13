@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { listEmployees, listTemplates, rangeCompletions, rangeAdHoc, rangeTimeEntries } from '../../lib/api'
 import { useData } from '../../lib/useData'
-import { Card, SectionTitle, Pill, ProgressRing, SkeletonList, EmptyState } from '../../components/ui'
+import { Card, CollapsibleSection, Pill, ProgressRing, SkeletonList, EmptyState, Avatar } from '../../components/ui'
 import { Activity, Spray, Check, Clock, User, Chevron, Refresh } from '../../components/icons'
 import { dayBounds, weekBounds, monthBounds, weekdayOf, dowLabel, timeHM, isTodayStr, todayMadrid } from '../../lib/date'
 import { workedMinutesByEmployee, fmtMinutes } from '../../lib/hours'
@@ -12,11 +12,6 @@ const PERIODS = [
   { key: 'month', label: 'Mes' },
 ]
 const applies = (weekdays, dow) => !weekdays || weekdays.length === 0 || weekdays.includes(dow)
-
-function Avatar({ emp, size = 32 }) {
-  const ini = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-  return <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white" style={{ background: emp.color, width: size, height: size, fontSize: size * 0.38 }}>{ini}</span>
-}
 
 export default function CleaningStats() {
   const [period, setPeriod] = useState('week')
@@ -131,8 +126,7 @@ export default function CleaningStats() {
 
           {/* Día: detalle de la ruta; Semana/Mes: barras por día */}
           {period === 'day' ? (
-            <div>
-              <SectionTitle icon={Spray}>Ruta del día</SectionTitle>
+            <CollapsibleSection icon={Spray} title="Ruta del día" persistKey="b13.cleanstats.ruta">
               {data.dayDetail.length === 0 ? (
                 <EmptyState icon={Spray} title="Sin ruta" subtitle="No había tareas programadas." />
               ) : (
@@ -152,10 +146,9 @@ export default function CleaningStats() {
                   ))}
                 </Card>
               )}
-            </div>
+            </CollapsibleSection>
           ) : (
-            <div>
-              <SectionTitle icon={Activity}>Cumplimiento por día</SectionTitle>
+            <CollapsibleSection icon={Activity} title="Cumplimiento por día" persistKey="b13.cleanstats.perday">
               <Card className="p-4">
                 <div className="flex items-end justify-between gap-1" style={{ height: maxBar + 20 }}>
                   {data.perDay.map((d) => (
@@ -169,12 +162,11 @@ export default function CleaningStats() {
                   ))}
                 </div>
               </Card>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Ranking por empleada */}
-          <div>
-            <SectionTitle icon={User}>Trabajo por empleada</SectionTitle>
+          <CollapsibleSection icon={User} title="Trabajo por empleada" persistKey="b13.cleanstats.ranking">
             <Card className="divide-y divide-ink/[0.06]">
               {data.ranking.map(({ e, tasks, min }, i) => (
                 <div key={e.id} className="flex animate-rise-in items-center gap-3 p-3" style={{ animationDelay: `${i * 35}ms` }}>
@@ -191,7 +183,7 @@ export default function CleaningStats() {
                 </div>
               ))}
             </Card>
-          </div>
+          </CollapsibleSection>
         </>
       )}
     </div>

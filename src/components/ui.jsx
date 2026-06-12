@@ -11,6 +11,31 @@ export function Card({ className = '', children, ...p }) {
   )
 }
 
+// Avatar de empleado: muestra su foto de perfil si la tiene, si no las iniciales sobre su color.
+export function Avatar({ emp, size = 40, className = '' }) {
+  const dim = { width: size, height: size }
+  if (emp?.photo_url) {
+    return (
+      <img
+        src={emp.photo_url}
+        alt={emp.name || ''}
+        loading="lazy"
+        className={`shrink-0 rounded-full object-cover ${className}`}
+        style={dim}
+      />
+    )
+  }
+  const initials = (emp?.name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white ${className}`}
+      style={{ ...dim, background: emp?.color || '#2C2925', fontSize: size * 0.38 }}
+    >
+      {initials}
+    </span>
+  )
+}
+
 // Placeholder con shimmer para cargas >300ms (skill §3 progressive-loading).
 // Reserva el espacio para evitar saltos de layout (CLS).
 export function Skeleton({ className = '' }) {
@@ -166,20 +191,19 @@ export function CollapsibleSection({ icon: Icon, title, right, persistKey, defau
 
   return (
     <div>
-      <button
-        onClick={toggle}
-        aria-expanded={open}
-        className="mb-2 flex w-full items-center justify-between px-1 active:opacity-70"
-      >
-        <span className="flex items-center gap-2 text-ink/70">
+      {/* `right` va FUERA del botón de plegado para que pueda ser interactivo (p.ej. "Añadir"). */}
+      <div className="mb-2 flex items-center justify-between px-1">
+        <button
+          onClick={toggle}
+          aria-expanded={open}
+          className="flex flex-1 items-center gap-2 text-ink/70 active:opacity-70"
+        >
           {Icon && <Icon size={18} />}
           <span className="font-display text-xl font-bold tracking-tight">{title}</span>
-        </span>
-        <span className="flex items-center gap-2">
-          {right}
           <ChevronDown size={18} className={`text-ink/30 transition-transform ${open ? 'rotate-180' : ''}`} />
-        </span>
-      </button>
+        </button>
+        {right}
+      </div>
       {open && <div className="animate-rise-in">{children}</div>}
     </div>
   )

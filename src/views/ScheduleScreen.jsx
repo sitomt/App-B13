@@ -8,7 +8,7 @@ import { useData } from '../lib/useData'
 import { useSession } from '../state/session'
 import { useToast } from '../components/Toast'
 import { haptic } from '../lib/haptics'
-import { Card, SectionTitle, Pill, SkeletonList, EmptyState } from '../components/ui'
+import { Card, CollapsibleSection, Pill, SkeletonList, EmptyState, Avatar } from '../components/ui'
 import Sheet from '../components/Sheet'
 import { Chevron, Calendar, Clock, Trash, User, Plus, Check, Lock, Alert } from '../components/icons'
 import { weekBounds, monthBounds, dowLabel, parseDate, isTodayStr, todayMadrid } from '../lib/date'
@@ -23,15 +23,6 @@ const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + 
 const hLabel = (t) => { const [h, m] = t.split(':').map(Number); return m === 0 ? `${h}` : `${h}:${String(m).padStart(2, '0')}` }
 const range = (s) => `${hLabel(s.start_time)}–${hLabel(s.end_time)}`
 
-function Avatar({ emp, size = 28 }) {
-  const ini = emp.name.split(' ').map((p) => p[0]).slice(0, 2).join('')
-  return (
-    <span className="flex shrink-0 items-center justify-center rounded-full font-display font-extrabold text-white"
-      style={{ background: emp.color, width: size, height: size, fontSize: size * 0.38 }}>
-      {ini}
-    </span>
-  )
-}
 
 // ------- Cuadrante semanal (rota): empleados x 7 días -------
 function WeekGrid({ staffByRole, days, shiftsByEmpDay, selectedDay, onSelectDay, employee, editable, onCellTap }) {
@@ -261,16 +252,14 @@ export default function ScheduleScreen({ editable = false }) {
           />
           {editable && <p className="-mt-2 px-1 text-xs text-ink/40">Toca una casilla para asignar o editar turnos. Las horas sin nadie = gimnasio cerrado.</p>}
 
-          <div>
-            <SectionTitle icon={Clock}>{parseDate(selectedDay).getDate()} {parseDate(selectedDay).toLocaleDateString('es-ES', { month: 'long' })} · cobertura por horas</SectionTitle>
+          <CollapsibleSection icon={Clock} title={`${parseDate(selectedDay).getDate()} ${parseDate(selectedDay).toLocaleDateString('es-ES', { month: 'long' })} · cobertura por horas`} persistKey="b13.horario.cobertura">
             <DayTimeline day={selectedDay} dayShifts={dayShifts} empById={empById} />
-          </div>
+          </CollapsibleSection>
         </>
       )}
 
       {/* Horas trabajadas (privadas por empleado) */}
-      <div>
-        <SectionTitle icon={User}>{editable ? 'Horas trabajadas del equipo' : 'Mis horas trabajadas'}</SectionTitle>
+      <CollapsibleSection icon={User} title={editable ? 'Horas trabajadas del equipo' : 'Mis horas trabajadas'} persistKey="b13.horario.horas">
         <Card className="divide-y divide-ink/[0.06]">
           {hoursStaff
             .map((e) => ({ e, w: weekWorked.get(e.id) || 0, m: monthWorked.get(e.id) || 0 }))
@@ -298,7 +287,7 @@ export default function ScheduleScreen({ editable = false }) {
             })}
         </Card>
         <p className="mt-2 px-1 text-xs text-ink/40">Calculado de los fichajes (descontando pausas y comidas).</p>
-      </div>
+      </CollapsibleSection>
 
       {editable && (
         <ShiftEditor
