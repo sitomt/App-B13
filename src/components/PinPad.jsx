@@ -45,7 +45,7 @@ export default function PinPad({ title, subtitle, onComplete, onBack, resetSigna
   const subCls = dark ? 'text-white/45' : 'text-ink/50'
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex w-full flex-col items-center">
       {title && <p className={`font-display text-2xl font-extrabold ${titleCls}`}>{title}</p>}
       {subtitle && <p className={`mt-1 text-sm ${subCls}`}>{subtitle}</p>}
 
@@ -57,7 +57,7 @@ export default function PinPad({ title, subtitle, onComplete, onBack, resetSigna
       </div>
 
       {/* Teclado */}
-      <div className="mt-9 grid w-full max-w-[18rem] grid-cols-3 gap-3">
+      <div className="mt-9 grid w-full max-w-sm grid-cols-3 gap-3">
         {KEYS.map((k, idx) => {
           if (k === null) return <span key={idx} />
           if (k === 'back') {
