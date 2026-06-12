@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Header, Screen, Fab } from '../components/AppShell'
+import { Header, Screen } from '../components/AppShell'
 import { Card, SectionTitle, Pill, Skeleton, EmptyState } from '../components/ui'
 import Sheet from '../components/Sheet'
+import SpeedDial from '../components/SpeedDial'
 import ReportIncident from '../components/ReportIncident'
 import AnnouncementSheet from '../components/AnnouncementSheet'
 import { listMaintenance, updateMaintenance, activeAnnouncements, listAreas } from '../lib/api'
@@ -132,7 +133,7 @@ export default function MaintenanceView() {
 
   return (
     <Screen>
-      <Header subtitle="Mantenimiento" onAnnounce={() => setAnnOpen(true)} />
+      <Header subtitle="Mantenimiento" />
       <div className="mx-auto max-w-md space-y-5 px-4 pt-4">
         <BirthdayNotice />
         {/* Resumen */}
@@ -219,11 +220,22 @@ export default function MaintenanceView() {
         )}
       </div>
 
-      <Fab icon={Plus} ariaLabel="Nueva tarea de mantenimiento" tone="bronze" onClick={() => setReportOpen(true)} />
-      <ReportIncident open={reportOpen} onClose={() => setReportOpen(false)} employee={employee} onCreated={() => inc.reload(true)} />
+      <SpeedDial
+        bottom="bottom-5"
+        actions={[
+          { icon: Wrench, label: 'Añadir tarea', tone: 'bronze', onClick: () => setReportOpen(true) },
+          { icon: Megaphone, label: 'Mandar aviso', tone: 'ink', onClick: () => setAnnOpen(true) },
+        ]}
+      />
+      <ReportIncident
+        open={reportOpen} onClose={() => setReportOpen(false)} employee={employee}
+        onCreated={() => inc.reload(true)}
+        heading="Añadir tarea de mantenimiento"
+        desc="Registra una avería o tarea de las instalaciones para gestionarla."
+      />
       <AnnouncementSheet
         open={annOpen} onClose={() => setAnnOpen(false)} employee={employee}
-        authorRole="maintenance" allowHighlight={false} fixedRoles={['coach', 'admin']} title="Aviso a coaches"
+        authorRole="maintenance" allowHighlight={false} fixedRoles={['coach', 'admin']} title="Mandar aviso"
       />
 
       <Sheet open={!!resolving} onClose={() => setResolving(null)} title="Resolver parte">

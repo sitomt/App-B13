@@ -10,9 +10,9 @@ import { useToast } from '../components/Toast'
 import { haptic } from '../lib/haptics'
 import { Card, SectionTitle, Pill, SkeletonList, EmptyState } from '../components/ui'
 import Sheet from '../components/Sheet'
-import { Chevron, Calendar, Clock, Trash, User, Plus, Check, Lock } from '../components/icons'
+import { Chevron, Calendar, Clock, Trash, User, Plus, Check, Lock, Alert } from '../components/icons'
 import { weekBounds, monthBounds, dowLabel, parseDate, isTodayStr, todayMadrid } from '../lib/date'
-import { workedMinutesByEmployee, fmtMinutes } from '../lib/hours'
+import { workedMinutesByEmployee, incompleteDaysByEmployee, fmtMinutes } from '../lib/hours'
 
 const ROLE_ORDER = ['coach', 'cleaning', 'maintenance']
 const ROLE_GROUP = { coach: 'Coaches', cleaning: 'Limpieza', maintenance: 'Mantenimiento' }
@@ -203,6 +203,8 @@ export default function ScheduleScreen({ editable = false }) {
   const dayShifts = (shifts.data || []).filter((s) => s.work_date === selectedDay).sort((a, b) => toMin(a.start_time) - toMin(b.start_time))
   const weekWorked = useMemo(() => workedMinutesByEmployee(weekEntries.data || []), [weekEntries.data])
   const monthWorked = useMemo(() => workedMinutesByEmployee(monthEntries.data || []), [monthEntries.data])
+  // Días pasados con fichaje de entrada sin salida: el total puede quedarse corto → avisar para corregir.
+  const monthIncomplete = useMemo(() => incompleteDaysByEmployee(monthEntries.data || []), [monthEntries.data])
 
   const published = schedWeek.data?.status === 'published'
   const showSchedule = editable || published
@@ -281,6 +283,11 @@ export default function ScheduleScreen({ editable = false }) {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-ink">{e.name}{isMe && <span className="ml-1 text-xs font-bold text-bronze-dark">· tú</span>}</p>
                     <p className="text-xs text-ink/40">Mes: <span className="tabular">{fmtMinutes(m)}</span></p>
+                    {monthIncomplete.get(e.id) > 0 && (
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-terracotta">
+                        <Alert size={11} /> {monthIncomplete.get(e.id)} día(s) sin fichar salida · revisar
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-display text-xl font-extrabold text-ink tabular">{fmtMinutes(w)}</p>

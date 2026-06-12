@@ -3,7 +3,7 @@ import { Plus } from './icons'
 import { haptic } from '../lib/haptics'
 
 // FAB con menú radial: un botón "+" que despliega varias acciones etiquetadas.
-export default function SpeedDial({ actions, tone = 'bronze' }) {
+export default function SpeedDial({ actions, tone = 'bronze', bottom = 'bottom-20' }) {
   const [open, setOpen] = useState(false)
   const tones = { bronze: 'bg-bronze', ink: 'bg-ink', terracotta: 'bg-terracotta' }
 
@@ -19,7 +19,7 @@ export default function SpeedDial({ actions, tone = 'bronze' }) {
     <>
       {open && <div className="fixed inset-0 z-30 animate-fade-in bg-ink/30" onClick={() => setOpen(false)} />}
       <div
-        className="fixed bottom-20 right-5 z-40 flex flex-col items-end gap-3"
+        className={`fixed ${bottom} right-5 z-40 flex flex-col items-end gap-3`}
         style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
       >
         {open &&

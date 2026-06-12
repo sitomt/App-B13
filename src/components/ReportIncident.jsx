@@ -18,7 +18,9 @@ const CATS_MANT = [
 const ZONES = ['Recepción', 'Sala principal', 'Sala spinning', 'Sala funcional', 'Vestuario hombres', 'Vestuario mujeres', 'Aseos', 'Zona de pesas']
 
 // target: 'mantenimiento' (instalaciones, va al técnico) | 'incidencia' (interna, la ve el admin)
-export default function ReportIncident({ open, onClose, employee, onCreated, target = 'mantenimiento' }) {
+// heading/desc: permiten personalizar el título y la descripción de la hoja
+// (p. ej. cuando el propio técnico añade una tarea, no es "avisar a mantenimiento").
+export default function ReportIncident({ open, onClose, employee, onCreated, target = 'mantenimiento', heading, desc }) {
   const isMant = target === 'mantenimiento'
   // Las etiquetas de incidencia interna son editables por el admin (tabla incidencia_types).
   const types = useData(() => (isMant ? Promise.resolve([]) : listIncidenciaTypes()), [isMant])
@@ -27,10 +29,10 @@ export default function ReportIncident({ open, onClose, employee, onCreated, tar
   const CATEGORIES = isMant
     ? CATS_MANT
     : (types.data || []).map((t) => ({ key: t.label, label: t.label }))
-  const sheetTitle = isMant ? 'Avisar a mantenimiento' : 'Reportar incidencia'
-  const sheetDesc = isMant
+  const sheetTitle = heading || (isMant ? 'Avisar a mantenimiento' : 'Reportar incidencia')
+  const sheetDesc = desc || (isMant
     ? 'Algo roto de las instalaciones (puerta, aire, parquet…). Le llega al técnico de mantenimiento al instante.'
-    : 'Cualquier incidencia del día: ruido de un vecino, un socio, material deportivo roto… Queda registrada para el admin.'
+    : 'Cualquier incidencia del día: ruido de un vecino, un socio, material deportivo roto… Queda registrada para el admin.')
   const placeholder = isMant ? 'Ej: La puerta del vestuario no cierra' : 'Ej: Vecino se ha quejado del ruido'
   const [category, setCategory] = useState(null)
   const [area, setArea] = useState(null)
